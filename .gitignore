@@ -1,0 +1,17 @@
+# Derleme çıktıları (build.sh üretir)
+VeriTakip.app/
+VeriTakip Kur.app/
+*.o
+
+# Kişisel çalışma verisi — asla repoya girmemeli
+VeriTakip/
+config.json
+gunluk.json
+state.json
+kalan.json
+rapor.html
+mini.html
+hata.log
+
+# macOS
+.DS_Store

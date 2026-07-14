@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VeriTakip — Kurulum Rehberi</title>
+<style>
+ body { font-family:-apple-system,'Segoe UI',sans-serif; background:#f4f6f8; color:#2c3e50;
+        max-width:760px; margin:24px auto; padding:0 16px; }
+ h1 { font-size:1.6em; } .alt { color:#7f8c8d; }
+ .adim { background:#fff; border-radius:14px; padding:20px 22px; margin:16px 0;
+         box-shadow:0 1px 5px rgba(0,0,0,.08); display:flex; gap:18px; align-items:flex-start; }
+ .no { flex:none; width:40px; height:40px; border-radius:50%; background:#3498db; color:#fff;
+       font-size:20px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+ .adim h2 { margin:2px 0 8px; font-size:1.15em; }
+ .onemli { background:#fff7e6; border:1.5px solid #f39c12; }
+ .onemli .no { background:#f39c12; }
+ .mock { background:#eef1f4; border:1px solid #d5dbe0; border-radius:10px; padding:14px 16px;
+         margin-top:10px; font-size:.92em; max-width:420px; }
+ .mock .baslik { font-weight:700; margin-bottom:6px; }
+ .btnler { text-align:right; margin-top:10px; }
+ .btn { display:inline-block; border:1px solid #c8cfd6; border-radius:7px; padding:4px 14px;
+        margin-left:6px; background:#fff; font-size:.9em; }
+ .btn.on { background:#3498db; color:#fff; border-color:#3498db; font-weight:600; }
+ .menum { background:#2c3e50; color:#fff; border-radius:8px; padding:6px 12px; display:inline-block;
+          font-size:.95em; margin-top:8px; }
+ kbd { background:#eef1f4; border:1px solid #d5dbe0; border-radius:5px; padding:1px 7px; font-size:.9em; }
+ .sag-tik { border:2px dashed #e74c3c; border-radius:8px; padding:8px 12px; display:inline-block;
+            margin-top:8px; color:#c0392b; font-weight:600; }
+</style></head><body>
+
+<h1>📶 VeriTakip — Kurulum Rehberi</h1>
+<p class="alt">Bilgisayarınız telefonunuzun internetini kullanırken kotanızdan ne kadar
+harcadığını gösterir. Kurulum ~1 dakika sürer, Terminal gerekmez.</p>
+
+<div class="adim">
+ <div class="no">1</div>
+ <div><h2>Zip dosyasını açın</h2>
+ Size gönderilen <b>VeriTakip-Kurulum.zip</b> dosyasına çift tıklayın;
+ içinden çıkan klasörü açın.</div>
+</div>
+
+<div class="adim onemli">
+ <div class="no">2</div>
+ <div><h2>"VeriTakip Kur"a SAĞ tıklayıp "Aç" deyin</h2>
+ En önemli adım bu! Çift tıklarsanız macOS "tanımlanamayan geliştirici" diyerek
+ açmayabilir. Bunun yerine:
+ <div class="sag-tik">🖱️ Sağ tık (veya Control+tık) → <b>Aç</b> → tekrar <b>Aç</b></div>
+ <p class="alt" style="font-size:.88em">Bu uyarı, uygulamanın App Store dışından gelmesinden
+ kaynaklanır ve yalnızca ilk açılışta bir kez görünür.</p></div>
+</div>
+
+<div class="adim">
+ <div class="no">3</div>
+ <div><h2>Üç soruyu cevaplayın</h2>
+ Sırayla üç küçük pencere açılır:
+ <div class="mock"><div class="baslik">VeriTakip Kurulum — 1/3</div>
+  Aylık internet paketiniz kaç GB?
+  <div style="background:#fff;border:1px solid #c8cfd6;border-radius:6px;padding:3px 8px;margin-top:6px;max-width:120px">60</div>
+  <div class="btnler"><span class="btn">Vazgeç</span><span class="btn on">Tamam</span></div></div>
+ <div class="mock"><div class="baslik">VeriTakip Kurulum — 2/3</div>
+  Fatura kesim gününüz ayın kaçı? (1-28)<br>
+  <span class="alt" style="font-size:.85em">Operatör uygulamanızda "yenileme tarihi" olarak görünür</span>
+  <div style="background:#fff;border:1px solid #c8cfd6;border-radius:6px;padding:3px 8px;margin-top:6px;max-width:120px">10</div>
+  <div class="btnler"><span class="btn">Vazgeç</span><span class="btn on">Tamam</span></div></div>
+ <div class="mock"><div class="baslik">VeriTakip Kurulum — 3/3</div>
+  Telefonunuz hangisi?
+  <div class="btnler"><span class="btn">Android</span><span class="btn on">iPhone</span></div></div>
+ </div>
+</div>
+
+<div class="adim">
+ <div class="no">4</div>
+ <div><h2>Bitti! Menü çubuğuna bakın</h2>
+ "✅ Kurulum tamamlandı" penceresini gördüğünüzde ekranın sağ üstünde,
+ saatin yanında şunu göreceksiniz:
+ <div class="menum">📶 0.00 GB &nbsp;&nbsp;🔋 &nbsp;📶 &nbsp;🔍 &nbsp;⏰ 14:32</div><br>
+ <span class="alt">• Telefonunuzun hotspot'una bağlandığınız anda köşede mini bir durum
+ penceresi belirir.<br>
+ • Ayrıntılı rapor masaüstünüzde: <b>VeriTakip Raporu.html</b><br>
+ • Simgeye tıklayıp menüden rapora da ulaşabilirsiniz.</span></div>
+</div>
+
+<div class="adim">
+ <div class="no">?</div>
+ <div><h2>Sorun mu çıktı?</h2>
+ <b>"Komut satırı araçları gerekiyor" derse:</b> "Araçları Kur"a basın, Apple'ın
+ kurulumu bitince "VeriTakip Kur"u yeniden çalıştırın (ücretsizdir).<br>
+ <b>Ayarları değiştirmek için:</b> menü çubuğundaki 📶 simgesi → <kbd>Ayarlar…</kbd>
+ (kota, kesim günü, uyarı sıklığı, bildirimler).<br>
+ <b>Kaldırmak isterseniz:</b> "VeriTakip Kur"u tekrar açıp <kbd>Kaldır</kbd> düğmesine basın.</div>
+</div>
+
+<p class="alt" style="text-align:center">VeriTakip verilerinizi yalnızca kendi
+bilgisayarınızda tutar; internete hiçbir şey göndermez.</p>
+</body></html>
