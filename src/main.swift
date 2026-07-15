@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     var sonAg = ""
     var ilkOkuma = true
     var durumSatiri: NSMenuItem?
+    var acilisSatiri: NSMenuItem?
 
     // Ayarlar penceresi bileşenleri
     var ayarWin: NSWindow?
@@ -43,6 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                      action: #selector(kalanGir), keyEquivalent: "k")
         menu.addItem(withTitle: "Ayarlar…",
                      action: #selector(ayarlarAc), keyEquivalent: ",")
+        acilisSatiri = menu.addItem(withTitle: "Bilgisayar açılınca başlat",
+                                    action: #selector(acilisToggle), keyEquivalent: "")
+        acilisSatiri?.state = acilistaBaslarMi() ? .on : .off
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Hotspot Penceresi Aç (telefondan) 📱",
                      action: #selector(hotspotPenceresi), keyEquivalent: "h")
@@ -128,6 +132,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     @objc func raporAc() {
         NSWorkspace.shared.open(veriDir.appendingPathComponent("rapor.html"))
+    }
+
+    // --- Açılışta başlat (Login Item) aç/kapat ---
+    var loginPlist: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/LaunchAgents/com.emir.veritakip.app.plist")
+    }
+    func acilistaBaslarMi() -> Bool {
+        FileManager.default.fileExists(atPath: loginPlist.path)
+    }
+    @objc func acilisToggle() {
+        if acilistaBaslarMi() {
+            // plist'i sil → bir sonraki açılışta başlamaz. Çalışan uygulama
+            // (bu süreç) etkilenmez, kapanmaz.
+            try? FileManager.default.removeItem(at: loginPlist)
+        } else {
+            let exe = Bundle.main.bundlePath + "/Contents/MacOS/VeriTakip"
+            let xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0"><dict>
+              <key>Label</key><string>com.emir.veritakip.app</string>
+              <key>ProgramArguments</key><array><string>\(exe)</string></array>
+              <key>RunAtLoad</key><true/>
+            </dict></plist>
+            """
+            try? FileManager.default.createDirectory(
+                at: loginPlist.deletingLastPathComponent(),
+                withIntermediateDirectories: true)
+            try? xml.write(to: loginPlist, atomically: true, encoding: .utf8)
+            kabuk("/bin/launchctl", ["bootstrap", "gui/\(getuid())", loginPlist.path])
+        }
+        acilisSatiri?.state = acilistaBaslarMi() ? .on : .off
     }
 
     // --- Yardımcı: komut çalıştır ---
