@@ -160,9 +160,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         return kabuk("/sbin/ifconfig", []).contains("172.20.10.")
     }
 
-    func speedifyCalisiyorMu() -> Bool {
-        return !kabuk("/usr/bin/pgrep", ["-x", "Speedify"])
-            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    // VPN'in yalnız AÇIK olması değil, BAĞLI olması önemli: varsayılan ağ
+    // rotası tünel arayüzünden (utun/ipsec) geçiyorsa VPN gerçekten aktiftir.
+    // (Speedify menü çubuğunda açık ama bağlantı kapalıysa uyarı çıkmaz.)
+    func vpnBagliMi() -> Bool {
+        let out = kabuk("/sbin/route", ["-n", "get", "default"])
+        for satir in out.split(separator: "\n") {
+            let s = satir.trimmingCharacters(in: .whitespaces)
+            if s.hasPrefix("interface:") {
+                let iface = s.dropFirst("interface:".count).trimmingCharacters(in: .whitespaces)
+                return iface.hasPrefix("utun") || iface.hasPrefix("ipsec")
+            }
+        }
+        return false
     }
 
     // --- Hotspot Penceresi: yalnız telefon hattından çıkan ayrı Chrome ---
@@ -184,12 +194,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                 "Pencere yalnızca telefon hattından çalışır."
             a.addButton(withTitle: "Tamam"); a.runModal(); return
         }
-        if speedifyCalisiyorMu() {
+        if vpnBagliMi() {
             let a = NSAlert()
-            a.messageText = "Speedify (VPN) açık"
-            a.informativeText = "Speedify tüm trafiği kendi tüneline aldığı için Hotspot " +
-                "Penceresi telefon hattı yerine VPN'den çıkabilir. Doğru çalışması için " +
-                "önce Speedify'ı kapatın."
+            a.messageText = "VPN bağlantısı aktif"
+            a.informativeText = "Şu an bir VPN (ör. Speedify) BAĞLI ve tüm trafiği kendi " +
+                "tüneline alıyor; bu yüzden Hotspot Penceresi telefon hattı yerine " +
+                "VPN'den çıkabilir. Doğru çalışması için önce VPN bağlantısını kesin."
             a.addButton(withTitle: "Yine de Aç")
             a.addButton(withTitle: "Vazgeç")
             if a.runModal() != .alertFirstButtonReturn { return }
