@@ -336,8 +336,9 @@ def ornek_al():
     # her arayüzün farkı, arayüz türüne göre hotspot/wifi/ethernet hanesine yazılır.
     gun = data.setdefault(bugun, {})
     wifi_dev = wifi_aygiti()
+    fiz = fiziksel_arayuzler()
     tur_delta = {HOTSPOT: 0, WIFI: 0, ETHERNET: 0}
-    for arayuz, ip in fiziksel_arayuzler().items():
+    for arayuz, ip in fiz.items():
         sayac = bayt_sayaclari(arayuz)
         if not sayac:
             continue
@@ -384,6 +385,25 @@ def ornek_al():
     donem_gb = gb(donem_bayt)
 
     kalan_bilgi = kalan_hesapla(donem_bayt, d_bas)
+
+    # --- ACİL KORUMA: Ethernet/Wi-Fi bağlıyken trafik telefona kaydıysa ---
+    # macOS, kısıtlı Ethernet yerine hotspot'u "birincil" yapabilir; o zaman
+    # TÜM trafik (yalnız istenen pencere değil) telefondan gider ve kota erir.
+    hotspot_bagli = any(ip_hotspot_mu(ip, config) for ip in fiz.values())
+    kablo_bagli = any(not ip_hotspot_mu(ip, config) for ip in fiz.values())
+    default_telefon = state.get("son_ag_detay") == HOTSPOT
+    uyarilar = state.setdefault("uyarilar", {})
+    if hotspot_bagli and kablo_bagli and default_telefon:
+        simdi = datetime.now().timestamp()
+        if simdi - uyarilar.get("anomali_ts", 0) > 90:  # ~her 90 sn'de tekrar
+            bildirim("⚠️ DİKKAT — İnternet telefondan gidiyor!",
+                     "Ethernet/Wi-Fi bağlı ama tüm trafik TELEFON hattından akıyor; "
+                     "kotanız hızla eriyor. Hotspot penceresini kapatın ve gerekirse "
+                     "Wi-Fi'yi kapatıp Ethernet'e dönün.")
+            uyarilar["anomali_ts"] = simdi
+        state["anomali"] = True
+    else:
+        state["anomali"] = False
 
     # Hotspot'a yeni bağlanıldıysa güncel durumu bildir
     if (config.get("bildirim_baglanti", True)
@@ -804,7 +824,10 @@ const AGLAR = {ag_json};
  .cip.on {{ background:#27ae60; color:#fff; font-weight:600; }}
  @media (prefers-color-scheme: dark) {{ .cip {{ background:#3a3d42; }}
    .cip.on {{ background:#27ae60; }} }}
+ .alarm {{ background:#e74c3c; color:#fff; padding:8px 11px; border-radius:9px;
+          font-size:12px; font-weight:600; margin-bottom:10px; line-height:1.35; }}
 </style></head><body>
+{"<div class='alarm'>⚠️ İnternet TELEFONDAN gidiyor! Ethernet bağlı ama trafik hotspot hattından akıyor — kota eriyor.</div>" if state.get("anomali") else ""}
 <div class="cips">{cipler}</div>
 <div>📶 Bugün (hotspot): <span class="b">{bugun_gb:.2f} GB</span></div>
 <div class="bar"><div style="width:{yuzde:.0f}%"></div></div>

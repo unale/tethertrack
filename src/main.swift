@@ -241,6 +241,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             a.addButton(withTitle: "Vazgeç")
             if a.runModal() != .alertFirstButtonReturn { return }
         }
+        // Önemli risk uyarısı: macOS telefonu birincil yapabilir → her şey
+        // telefondan gider. Kullanıcı bilinçli onaylasın.
+        let risk = NSAlert()
+        risk.messageText = "Önce şunu bilin ⚠️"
+        risk.informativeText = "Hastane Ethernet'i kısıtlıysa, macOS telefonu 'birincil " +
+            "bağlantı' yapabilir; o zaman SADECE bu pencere değil, bilgisayarın TÜM " +
+            "trafiği (güncellemeler, uygulamalar) telefondan gider ve kotanız hızla erir.\n\n" +
+            "VeriTakip bunu algılarsa sizi kırmızı alarmla uyarır. İşiniz biter bitmez " +
+            "bu pencereyi kapatın; alarm görürseniz Wi-Fi'yi kapatıp Ethernet'e dönün."
+        risk.addButton(withTitle: "Anladım, Aç")
+        risk.addButton(withTitle: "Vazgeç")
+        if risk.runModal() != .alertFirstButtonReturn { return }
+
         // Takılı eski proxy'leri temizle, taze başlat (port çakışması önlenir)
         kabuk("/usr/bin/pkill", ["-f", "hotspot_proxy"])
         usleep(300_000)
