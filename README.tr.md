@@ -36,7 +36,7 @@ En kolay yol — hazır paketi indirin:
 ## Kaynaktan derleme (geliştiriciler için)
 
 ```bash
-git clone https://github.com/<kullanıcı-adınız>/veritakip.git
+git clone https://github.com/unale/tethertrack.git
 cd veritakip
 bash build.sh
 ```

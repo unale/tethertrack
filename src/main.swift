@@ -188,7 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                 NSWorkspace.shared.open(url)
             }
         } else if sonuc == .alertSecondButtonReturn {
-            if let url = URL(string: "https://github.com/unale/veritakip/issues/new") {
+            if let url = URL(string: "https://github.com/unale/tethertrack/issues/new") {
                 NSWorkspace.shared.open(url)
             }
         }

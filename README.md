@@ -37,7 +37,7 @@ Easiest path — download the prebuilt package:
 ## Build from source (for developers)
 
 ```bash
-git clone https://github.com/unale/veritakip.git
+git clone https://github.com/unale/tethertrack.git
 cd veritakip
 bash build.sh
 ```
