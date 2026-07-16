@@ -5,6 +5,8 @@
 Ev/iş Wi-Fi'ı ve Ethernet trafiğini otomatik ayırt eder; yalnızca hotspot kullanımını kotanızdan sayar. Tüm veriler yalnızca kendi bilgisayarınızda kalır — hiçbir yere gönderilmez.
 
 > macOS için · Türkçe arayüz · ücretsiz ve açık kaynak (MIT)
+>
+> 🇬🇧 [English README](README.en.md)
 
 ## Özellikler
 

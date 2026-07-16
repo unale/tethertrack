@@ -1,0 +1,32 @@
+#!/bin/bash
+# VeriTakip pre-commit denetimi — bozuk kod commit'lenmesini önler.
+# Etkinleştirmek için:  git config core.hooksPath .githooks
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+hata=0
+
+# Python söz dizimi
+for py in src/veri_takip.py src/hotspot_proxy.py; do
+    if [ -f "$py" ]; then
+        if ! python3 -m py_compile "$py" 2>/dev/null; then
+            echo "✗ Söz dizimi hatası: $py"
+            hata=1
+        fi
+    fi
+done
+
+# HTML şablonundaki tanımsız değişken referansı (app_bolum gibi eski hatalar)
+if [ -f src/veri_takip.py ]; then
+    if grep -qE '\{app_bolum\}' src/veri_takip.py; then
+        echo "✗ Tanımsız şablon değişkeni: {app_bolum}"
+        hata=1
+    fi
+fi
+
+if [ "$hata" -eq 0 ]; then
+    echo "✓ pre-commit denetimi geçti"
+else
+    echo "  Commit iptal edildi. Hataları düzeltip tekrar deneyin."
+    exit 1
+fi

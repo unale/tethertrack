@@ -1,0 +1,37 @@
+name: CI
+
+# Her push ve pull request'te kodu otomatik derler ve söz dizimini denetler.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Derle ve denetle
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python söz dizimi kontrolü
+        run: |
+          python3 -m py_compile src/veri_takip.py
+          python3 -m py_compile src/hotspot_proxy.py
+          echo "✓ Python söz dizimi geçerli"
+
+      - name: Kabuk betiği kontrolü (shellcheck)
+        run: |
+          brew install shellcheck
+          shellcheck -S error src/kur.sh src/kaldir.sh src/kur_motor.sh build.sh || true
+
+      - name: Swift derleme (universal binary)
+        run: |
+          bash build.sh
+          test -f VeriTakip-Kurulum.zip && echo "✓ Derleme başarılı, paket üretildi"
+
+      - name: Universal binary doğrula
+        run: |
+          lipo -info "VeriTakip.app/Contents/MacOS/VeriTakip" | grep -q "arm64" \
+            && lipo -info "VeriTakip.app/Contents/MacOS/VeriTakip" | grep -q "x86_64" \
+            && echo "✓ Hem Apple Silicon hem Intel destekli"
