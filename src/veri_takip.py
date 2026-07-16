@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "bildirim_baglanti": True,  # hotspot'a bağlanınca durum bildirimi
     "bildirim_gunluk": True,    # günlük eşik aşımı bildirimi
     "bildirim_aylik": True,     # dönem eşiği aşımı bildirimi
+    "dil": "tr",                # arayüz dili: "tr" veya "en" (rapor sonraki adımda çevrilecek)
 }
 
 HOTSPOT = "hotspot"

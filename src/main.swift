@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     var ilkOkuma = true
     var durumSatiri: NSMenuItem?
     var acilisSatiri: NSMenuItem?
+    var dil = "tr"   // config.json'dan başlangıçta okunur
 
     // Ayarlar penceresi bileşenleri
     var ayarWin: NSWindow?
@@ -20,9 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     let pGun = NSPopUpButton()
     let pAdim = NSPopUpButton()
     let fEsik = NSTextField()
-    let cBag = NSButton(checkboxWithTitle: "Hotspot'a bağlanınca durum bildirimi", target: nil, action: nil)
-    let cGunluk = NSButton(checkboxWithTitle: "Günlük kademe bildirimleri (adım başına)", target: nil, action: nil)
-    let cAylik = NSButton(checkboxWithTitle: "Paket doluluk bildirimleri", target: nil, action: nil)
+    let pDil = NSPopUpButton()
+    let cBag = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let cGunluk = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    let cAylik = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     let adimDegerleri = [0.0, 0.25, 0.5, 1.0, 1.5, 2.0]
 
     let veriDir = FileManager.default.homeDirectoryForCurrentUser
@@ -42,31 +44,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             NSApp.terminate(nil)
             return
         }
+        dil = (jsonOku("config.json")?["dil"] as? String) ?? "tr"
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "📶 …"
 
         let menu = NSMenu()
-        durumSatiri = menu.addItem(withTitle: "Bağlantı: kontrol ediliyor…",
+        durumSatiri = menu.addItem(withTitle: L("Bağlantı: kontrol ediliyor…", "Connection: checking…"),
                                    action: nil, keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Mini Pencereyi Göster/Gizle",
+        menu.addItem(withTitle: L("Mini Pencereyi Göster/Gizle", "Show/Hide Mini Window"),
                      action: #selector(togglePanel), keyEquivalent: "m")
-        menu.addItem(withTitle: "Detaylı Raporu Aç",
+        menu.addItem(withTitle: L("Detaylı Raporu Aç", "Open Detailed Report"),
                      action: #selector(raporAc), keyEquivalent: "r")
-        menu.addItem(withTitle: "Kalan Kotayı Gir…",
+        menu.addItem(withTitle: L("Kalan Kotayı Gir…", "Enter Remaining Quota…"),
                      action: #selector(kalanGir), keyEquivalent: "k")
-        menu.addItem(withTitle: "Ayarlar…",
+        menu.addItem(withTitle: L("Ayarlar…", "Settings…"),
                      action: #selector(ayarlarAc), keyEquivalent: ",")
-        acilisSatiri = menu.addItem(withTitle: "Bilgisayar açılınca başlat",
+        acilisSatiri = menu.addItem(withTitle: L("Bilgisayar açılınca başlat", "Start at login"),
                                     action: #selector(acilisToggle), keyEquivalent: "")
         acilisSatiri?.state = acilistaBaslarMi() ? .on : .off
-        menu.addItem(withTitle: "Yardım / Geri Bildirim ✉️",
+        menu.addItem(withTitle: L("Yardım / Geri Bildirim ✉️", "Help / Feedback ✉️"),
                      action: #selector(yardimAc), keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Hotspot Penceresi Aç (telefondan) 📱",
+        menu.addItem(withTitle: L("Hotspot Penceresi Aç (telefondan) 📱", "Open Hotspot Window (via phone) 📱"),
                      action: #selector(hotspotPenceresi), keyEquivalent: "h")
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "VeriTakip'ten Çık",
+        menu.addItem(withTitle: L("VeriTakip'ten Çık", "Quit TetherTrack"),
                      action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.items.forEach { $0.target = ($0.action == #selector(NSApplication.terminate(_:))) ? NSApp : self }
         statusItem.menu = menu
@@ -75,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         panel = NSPanel(contentRect: boyut,
                         styleMask: [.titled, .closable, .nonactivatingPanel, .utilityWindow],
                         backing: .buffered, defer: false)
-        panel.title = "VeriTakip"
+        panel.title = L("VeriTakip", "TetherTrack")
         panel.level = .floating
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
@@ -97,6 +100,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
+    // Dil yardımcısı: config.json'daki "dil" ayarına göre metin seçer.
+    func L(_ tr: String, _ en: String) -> String { dil == "en" ? en : tr }
+
     func tik() {
         // Menü çubuğu başlığı: bugünkü hotspot GB
         let bicim = DateFormatter()
@@ -117,12 +123,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
         // Menüdeki canlı bağlantı satırı
         let detay = (state["son_ag_detay"] as? String) ?? ag
-        let etiketler = ["ethernet": "🟢 Ethernet 🔌 — kotadan düşmez",
-                         "wifi": "🟢 Wi-Fi 🏠 — kotadan düşmez",
-                         "hotspot": "🟢 Hotspot 📱 — kota sayılıyor!",
-                         "vpn": "🔒 VPN aktif — sayım fiziksel hatlardan",
-                         "yok": "⚪️ Bağlantı yok"]
-        durumSatiri?.title = "Bağlantı: " + (etiketler[detay] ?? "bilinmiyor")
+        let etiketler = [
+            "ethernet": L("🟢 Ethernet 🔌 — kotadan düşmez", "🟢 Ethernet 🔌 — not counted"),
+            "wifi": L("🟢 Wi-Fi 🏠 — kotadan düşmez", "🟢 Wi-Fi 🏠 — not counted"),
+            "hotspot": L("🟢 Hotspot 📱 — kota sayılıyor!", "🟢 Hotspot 📱 — counting quota!"),
+            "vpn": L("🔒 VPN aktif — sayım fiziksel hatlardan", "🔒 VPN active — counting from physical links"),
+            "yok": L("⚪️ Bağlantı yok", "⚪️ No connection")]
+        durumSatiri?.title = L("Bağlantı: ", "Connection: ") + (etiketler[detay] ?? L("bilinmiyor", "unknown"))
         if !ilkOkuma && ag == "hotspot" && sonAg != "hotspot" {
             panelGoster()
         }
@@ -153,14 +160,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     @objc func yardimAc() {
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
-        a.messageText = "Yardım / Geri Bildirim"
-        a.informativeText = "Bir sorun, hata veya öneriniz mi var? Aşağıdaki düğme " +
-            "e-posta uygulamanızda geliştiriciye (Emir Ünal) bir mesaj taslağı açar. " +
+        a.messageText = L("Yardım / Geri Bildirim", "Help / Feedback")
+        a.informativeText = L(
+            "Bir sorun, hata veya öneriniz mi var? Aşağıdaki düğme e-posta " +
+            "uygulamanızda geliştiriciye (Emir Ünal) bir mesaj taslağı açar. " +
             "Olabildiğince açık yazın; en kısa sürede dönüş yapılır.\n\n" +
-            "Alternatif: GitHub üzerinde de sorun açabilirsiniz."
-        a.addButton(withTitle: "E-posta Gönder")
-        a.addButton(withTitle: "GitHub'da Aç")
-        a.addButton(withTitle: "Vazgeç")
+            "Alternatif: GitHub üzerinde de sorun açabilirsiniz.",
+            "Have a problem, bug or suggestion? The button below opens a draft " +
+            "message to the developer (Emir Ünal) in your email app. Please be as " +
+            "clear as possible; you'll get a reply as soon as possible.\n\n" +
+            "Alternatively, you can open an issue on GitHub.")
+        a.addButton(withTitle: L("E-posta Gönder", "Send Email"))
+        a.addButton(withTitle: L("GitHub'da Aç", "Open on GitHub"))
+        a.addButton(withTitle: L("Vazgeç", "Cancel"))
         let sonuc = a.runModal()
         let os = ProcessInfo.processInfo.operatingSystemVersionString
         func enc(_ s: String) -> String {
@@ -265,39 +277,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let chrome = "/Applications/Google Chrome.app"
         guard FileManager.default.fileExists(atPath: chrome) else {
             let a = NSAlert()
-            a.messageText = "Google Chrome gerekli"
-            a.informativeText = "Hotspot Penceresi için Google Chrome kurulu olmalı."
+            a.messageText = L("Google Chrome gerekli", "Google Chrome required")
+            a.informativeText = L("Hotspot Penceresi için Google Chrome kurulu olmalı.",
+                                  "Google Chrome must be installed for the Hotspot Window.")
             a.runModal(); return
         }
         if !hotspotVarMi() {
             let a = NSAlert()
-            a.messageText = "Telefon bağlı değil"
-            a.informativeText = "Önce iPhone'unuzun Kişisel Erişim Noktası'na bağlanın " +
-                "(Ethernet kablosunu çekmenize gerek yok), sonra tekrar deneyin. " +
-                "Pencere yalnızca telefon hattından çalışır."
-            a.addButton(withTitle: "Tamam"); a.runModal(); return
+            a.messageText = L("Telefon bağlı değil", "Phone not connected")
+            a.informativeText = L(
+                "Önce iPhone'unuzun Kişisel Erişim Noktası'na bağlanın (Ethernet " +
+                "kablosunu çekmenize gerek yok), sonra tekrar deneyin. Pencere " +
+                "yalnızca telefon hattından çalışır.",
+                "First connect to your iPhone's Personal Hotspot (no need to unplug " +
+                "Ethernet), then try again. The window works only over the phone line.")
+            a.addButton(withTitle: L("Tamam", "OK")); a.runModal(); return
         }
         if vpnBagliMi() {
             let a = NSAlert()
-            a.messageText = "VPN bağlantısı aktif"
-            a.informativeText = "Şu an bir VPN (ör. Speedify) BAĞLI ve tüm trafiği kendi " +
-                "tüneline alıyor; bu yüzden Hotspot Penceresi telefon hattı yerine " +
-                "VPN'den çıkabilir. Doğru çalışması için önce VPN bağlantısını kesin."
-            a.addButton(withTitle: "Yine de Aç")
-            a.addButton(withTitle: "Vazgeç")
+            a.messageText = L("VPN bağlantısı aktif", "VPN connection active")
+            a.informativeText = L(
+                "Şu an bir VPN (ör. Speedify) BAĞLI ve tüm trafiği kendi tüneline " +
+                "alıyor; bu yüzden Hotspot Penceresi telefon hattı yerine VPN'den " +
+                "çıkabilir. Doğru çalışması için önce VPN bağlantısını kesin.",
+                "A VPN (e.g. Speedify) is currently CONNECTED and routing all traffic " +
+                "through its tunnel, so the Hotspot Window may exit via the VPN instead " +
+                "of the phone line. Disconnect the VPN first for correct behavior.")
+            a.addButton(withTitle: L("Yine de Aç", "Open Anyway"))
+            a.addButton(withTitle: L("Vazgeç", "Cancel"))
             if a.runModal() != .alertFirstButtonReturn { return }
         }
         // Önemli risk uyarısı: macOS telefonu birincil yapabilir → her şey
         // telefondan gider. Kullanıcı bilinçli onaylasın.
         let risk = NSAlert()
-        risk.messageText = "Önce şunu bilin ⚠️"
-        risk.informativeText = "Hastane Ethernet'i kısıtlıysa, macOS telefonu 'birincil " +
-            "bağlantı' yapabilir; o zaman SADECE bu pencere değil, bilgisayarın TÜM " +
-            "trafiği (güncellemeler, uygulamalar) telefondan gider ve kotanız hızla erir.\n\n" +
+        risk.messageText = L("Önce şunu bilin ⚠️", "Please note ⚠️")
+        risk.informativeText = L(
+            "Hastane/kısıtlı Ethernet'te macOS telefonu 'birincil bağlantı' yapabilir; " +
+            "o zaman SADECE bu pencere değil, bilgisayarın TÜM trafiği (güncellemeler, " +
+            "uygulamalar) telefondan gider ve kotanız hızla erir.\n\n" +
             "VeriTakip bunu algılarsa sizi kırmızı alarmla uyarır. İşiniz biter bitmez " +
-            "bu pencereyi kapatın; alarm görürseniz Wi-Fi'yi kapatıp Ethernet'e dönün."
-        risk.addButton(withTitle: "Anladım, Aç")
-        risk.addButton(withTitle: "Vazgeç")
+            "bu pencereyi kapatın; alarm görürseniz Wi-Fi'yi kapatıp Ethernet'e dönün.",
+            "On a restricted Ethernet, macOS may make the phone the 'primary connection'; " +
+            "then NOT just this window but ALL of your computer's traffic (updates, apps) " +
+            "goes through the phone and your quota drains fast.\n\n" +
+            "TetherTrack warns you with a red alarm if it detects this. Close this window " +
+            "as soon as you're done; if you see the alarm, turn off Wi-Fi and return to Ethernet.")
+        risk.addButton(withTitle: L("Anladım, Aç", "Got it, Open"))
+        risk.addButton(withTitle: L("Vazgeç", "Cancel"))
         if risk.runModal() != .alertFirstButtonReturn { return }
 
         // Takılı eski proxy'leri temizle, taze başlat (port çakışması önlenir)
@@ -319,15 +345,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     @objc func kalanGir() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Kalan Kotayı Gir"
-        alert.informativeText = "Operatör uygulamanızda (Turkcell vb.) şu an görünen " +
-            "kalan internet miktarını GB olarak yazın. Bundan sonra kalan, " +
-            "bilgisayarın harcamasına göre otomatik azaltılır."
+        alert.messageText = L("Kalan Kotayı Gir", "Enter Remaining Quota")
+        alert.informativeText = L(
+            "Operatör uygulamanızda (Turkcell vb.) şu an görünen kalan internet " +
+            "miktarını GB olarak yazın. Bundan sonra kalan, bilgisayarın harcamasına " +
+            "göre otomatik azaltılır.",
+            "Enter the remaining data (in GB) currently shown in your carrier's app. " +
+            "From then on, the remaining amount is decremented automatically as your " +
+            "computer spends.")
         let alan = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
-        alan.placeholderString = "örn. 54,5"
+        alan.placeholderString = L("örn. 54,5", "e.g. 54.5")
         alert.accessoryView = alan
-        alert.addButton(withTitle: "Kaydet")
-        alert.addButton(withTitle: "Vazgeç")
+        alert.addButton(withTitle: L("Kaydet", "Save"))
+        alert.addButton(withTitle: L("Vazgeç", "Cancel"))
         alert.window.initialFirstResponder = alan
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
@@ -335,8 +365,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             .trimmingCharacters(in: .whitespaces)
         guard let deger = Double(metin), deger >= 0, deger < 10000 else {
             let hata = NSAlert()
-            hata.messageText = "Geçersiz değer"
-            hata.informativeText = "Lütfen sayı girin (örn. 54,5)."
+            hata.messageText = L("Geçersiz değer", "Invalid value")
+            hata.informativeText = L("Lütfen sayı girin (örn. 54,5).", "Please enter a number (e.g. 54.5).")
             hata.runModal()
             return
         }
@@ -349,9 +379,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
 
         let tamam = NSAlert()
-        tamam.messageText = "Kaydedildi ✅"
-        tamam.informativeText = String(format: "Kalan %.1f GB olarak işlendi. " +
-            "Rapor ve mini pencere 1 dakika içinde güncellenir.", deger)
+        tamam.messageText = L("Kaydedildi ✅", "Saved ✅")
+        tamam.informativeText = String(format: L(
+            "Kalan %.1f GB olarak işlendi. Rapor ve mini pencere 1 dakika içinde güncellenir.",
+            "Recorded as %.1f GB remaining. Report and mini window update within a minute."), deger)
         tamam.runModal()
     }
 
@@ -371,26 +402,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 430, height: 320),
                            styleMask: [.titled, .closable],
                            backing: .buffered, defer: false)
-        win.title = "VeriTakip Ayarları"
+        win.title = L("VeriTakip Ayarları", "TetherTrack Settings")
         win.isReleasedWhenClosed = false
 
-        fKota.placeholderString = "örn. 60"
-        pGun.addItems(withTitles: (1...28).map { "Ayın \($0)'i" })
-        pAdim.addItems(withTitles: ["Kapalı", "250 MB'de bir", "500 MB'de bir",
-                                    "1 GB'de bir", "1.5 GB'de bir", "2 GB'de bir"])
-        fEsik.placeholderString = "örn. 60, 80"
+        fKota.placeholderString = L("örn. 60", "e.g. 60")
+        if pGun.numberOfItems == 0 {
+            pGun.addItems(withTitles: (1...28).map { L("Ayın \($0)'i", "Day \($0)") })
+            pAdim.addItems(withTitles: [L("Kapalı", "Off"),
+                L("250 MB'de bir", "Every 250 MB"), L("500 MB'de bir", "Every 500 MB"),
+                L("1 GB'de bir", "Every 1 GB"), L("1.5 GB'de bir", "Every 1.5 GB"),
+                L("2 GB'de bir", "Every 2 GB")])
+            pDil.addItems(withTitles: ["Türkçe", "English"])
+        }
+        fEsik.placeholderString = L("örn. 60, 80", "e.g. 60, 80")
 
-        let kaydet = NSButton(title: "Kaydet", target: self, action: #selector(ayarKaydet))
+        let kaydet = NSButton(title: L("Kaydet", "Save"), target: self, action: #selector(ayarKaydet))
         kaydet.keyEquivalent = "\r"
-        let aciklama = etiket("Değişiklikler en geç 1 dakika içinde geçerli olur.")
+        let aciklama = etiket(L("Değişiklikler en geç 1 dakika içinde geçerli olur. Dil değişimi için uygulamayı yeniden başlatın.",
+                                "Changes take effect within a minute. Restart the app for a language change."))
         aciklama.textColor = .secondaryLabelColor
         aciklama.font = NSFont.systemFont(ofSize: 11)
+        aciklama.lineBreakMode = .byWordWrapping
+        aciklama.preferredMaxLayoutWidth = 260
 
         let grid = NSGridView(views: [
-            [etiket("Aylık internet kotası (GB):"), fKota],
-            [etiket("Fatura kesim günü:"), pGun],
-            [etiket("Günlük kullanım uyarısı:"), pAdim],
-            [etiket("Doluluk uyarı eşikleri (%):"), fEsik],
+            [etiket(L("Aylık internet kotası (GB):", "Monthly data quota (GB):")), fKota],
+            [etiket(L("Fatura kesim günü:", "Billing cycle day:")), pGun],
+            [etiket(L("Günlük kullanım uyarısı:", "Daily usage alert:")), pAdim],
+            [etiket(L("Doluluk uyarı eşikleri (%):", "Quota-full thresholds (%):")), fEsik],
+            [etiket(L("Dil / Language:", "Dil / Language:")), pDil],
             [NSGridCell.emptyContentView, cBag],
             [NSGridCell.emptyContentView, cGunluk],
             [NSGridCell.emptyContentView, cAylik],
@@ -432,6 +472,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         cBag.state = ((cfg["bildirim_baglanti"] as? Bool) ?? true) ? .on : .off
         cGunluk.state = ((cfg["bildirim_gunluk"] as? Bool) ?? true) ? .on : .off
         cAylik.state = ((cfg["bildirim_aylik"] as? Bool) ?? true) ? .on : .off
+        pDil.selectItem(at: ((cfg["dil"] as? String) == "en") ? 1 : 0)
+        // Onay kutusu başlıklarını güncel dile göre ayarla
+        cBag.title = L("Hotspot'a bağlanınca durum bildirimi", "Notify when connecting to hotspot")
+        cGunluk.title = L("Günlük kademe bildirimleri (adım başına)", "Daily step alerts (per step)")
+        cAylik.title = L("Paket doluluk bildirimleri", "Quota-full alerts")
     }
 
     @objc func ayarKaydet() {
@@ -439,8 +484,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             .trimmingCharacters(in: .whitespaces)
         guard let kota = Double(kotaMetin), kota > 0, kota < 100000 else {
             let a = NSAlert()
-            a.messageText = "Geçersiz kota"
-            a.informativeText = "Aylık kota sayı olmalı (örn. 60)."
+            a.messageText = L("Geçersiz kota", "Invalid quota")
+            a.informativeText = L("Aylık kota sayı olmalı (örn. 60).", "Monthly quota must be a number (e.g. 60).")
             a.runModal()
             return
         }
@@ -458,6 +503,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         cfg["bildirim_baglanti"] = cBag.state == .on
         cfg["bildirim_gunluk"] = cGunluk.state == .on
         cfg["bildirim_aylik"] = cAylik.state == .on
+        cfg["dil"] = pDil.indexOfSelectedItem == 1 ? "en" : "tr"
         if let d = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted, .sortedKeys]) {
             try? d.write(to: cfgURL)
         }
