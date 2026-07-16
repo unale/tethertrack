@@ -29,6 +29,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         .appendingPathComponent("VeriTakip")
 
     func applicationDidFinishLaunching(_ note: Notification) {
+        // Tek kopya: zaten çalışan bir VeriTakip varsa bu yeni kopyayı kapat
+        // (alias/Spotlight'tan tekrar açılınca çift simge oluşmasın).
+        let benim = NSRunningApplication.current
+        let digerleri = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == benim.bundleIdentifier
+                && $0.processIdentifier != benim.processIdentifier
+        }
+        if !digerleri.isEmpty {
+            // Çalışan asıl kopyayı öne getir, bu fazladan kopyayı kapat
+            digerleri.first?.activate()
+            NSApp.terminate(nil)
+            return
+        }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "📶 …"
 
@@ -137,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     // --- Açılışta başlat (Login Item) aç/kapat ---
     var loginPlist: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/LaunchAgents/com.emir.veritakip.app.plist")
+            .appendingPathComponent("Library/LaunchAgents/com.veritakip.app.plist")
     }
     func acilistaBaslarMi() -> Bool {
         FileManager.default.fileExists(atPath: loginPlist.path)
@@ -153,7 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
             <plist version="1.0"><dict>
-              <key>Label</key><string>com.emir.veritakip.app</string>
+              <key>Label</key><string>com.veritakip.app</string>
               <key>ProgramArguments</key><array><string>\(exe)</string></array>
               <key>RunAtLoad</key><true/>
             </dict></plist>
