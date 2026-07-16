@@ -503,11 +503,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         cfg["bildirim_baglanti"] = cBag.state == .on
         cfg["bildirim_gunluk"] = cGunluk.state == .on
         cfg["bildirim_aylik"] = cAylik.state == .on
-        cfg["dil"] = pDil.indexOfSelectedItem == 1 ? "en" : "tr"
+        let yeniDil = pDil.indexOfSelectedItem == 1 ? "en" : "tr"
+        cfg["dil"] = yeniDil
         if let d = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted, .sortedKeys]) {
             try? d.write(to: cfgURL)
         }
         ayarWin?.orderOut(nil)
+
+        // Dil değiştiyse arayüzü yeni dile geçirmek için uygulamayı yeniden başlat
+        if yeniDil != dil {
+            let a = NSAlert()
+            a.messageText = L("Dil değiştirildi", "Language changed")
+            a.informativeText = L("Uygulama yeni dille yeniden başlatılıyor.",
+                                  "The app is restarting in the new language.")
+            a.addButton(withTitle: L("Tamam", "OK"))
+            a.runModal()
+            kabuk("/bin/launchctl",
+                  ["kickstart", "-k", "gui/\(getuid())/com.veritakip.app"], bekle: false)
+        }
     }
 
     // mini.html içindeki olası bağlantıları varsayılan tarayıcıda aç
