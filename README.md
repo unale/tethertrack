@@ -69,7 +69,13 @@ TetherTrack sends nothing to the internet. Measurements live only in `~/VeriTaki
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for what is done and what is planned.
+**Coming soon** — being planned now:
+- 🔔 **Notification Center widget** — glance at usage without opening the menu
+- 📈 **End-of-period forecast** — "at this pace you'll reach ~X GB" with a trend graph
+- 🎯 **Per-app limit** — e.g. "warn me when Chrome passes 1 GB today"
+- 🔵 **Low-data-mode suggestion** when quota gets critical
+
+See the full list (done + planned, updated as we go) in [ROADMAP.md](ROADMAP.md).
 
 ## License
 

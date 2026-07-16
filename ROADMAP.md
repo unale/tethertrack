@@ -2,6 +2,8 @@
 
 > 🇹🇷 Türkçe için aşağıya kaydırın.
 
+This is a living document — as features ship, they move to **Done**, and new ideas are added.
+
 ## ✅ Done
 
 - Per-minute background measurement of hotspot / Wi-Fi / Ethernet, counted separately
@@ -19,26 +21,43 @@
 - Single-instance protection, start-at-login toggle, installer wizard
 - Published on GitHub with CI + pre-commit checks
 
-## 🔜 Planned
+## 🔜 Coming soon
 
-**Next up**
-- Notification Center widget (glance at usage without opening the menu)
-- End-of-period forecast ("at this rate you'll reach ~X GB") with a nice graph
+These are being planned in priority order. Details may change as we build.
 
-**Idea pool**
-- App-based limit ("warn me when Chrome passes 1 GB today")
-- End-of-day summary graph
-- Low-data-mode suggestion when quota is critical
-- TripMode-style per-app blocking on hotspot
-- iCloud sync to combine multiple Macs
-- Even more polished report visuals
+### Next up
 
-**Optional / later**
-- Apple Developer signing + notarization ($99/yr) → removes the "right-click → Open" step
+- **Notification Center widget** — a small card in macOS Notification Center (the panel that
+  opens when you click the clock). Glance at today's usage and remaining quota without even
+  opening the menu bar — the Mac equivalent of an iPhone home-screen widget.
+- **End-of-period forecast** — a projection based on your average rate and days left:
+  "at this pace you'll reach ~X GB by the cycle end," shown as a small trend graph so you can
+  see early whether you're on track to exceed the plan.
+
+### Idea pool
+
+- **Per-app limit** — set a threshold for a specific app, e.g. "warn me when Chrome passes
+  1 GB of hotspot data today," so a single app can't quietly drain the quota.
+- **End-of-day summary** — a short daily wrap-up graph of when (which hours) you spent the most.
+- **Low-data-mode suggestion** — when the quota gets critical, offer to turn on macOS Low Data
+  Mode (which throttles background downloads, auto-updates and high-res content — it reduces
+  waste, not speed).
+- **TripMode-style app blocking** — while on hotspot, actually block the internet for apps you
+  choose (updates, cloud sync, etc.), not just measure them.
+- **iCloud multi-Mac merge** — if you use more than one Mac, combine their hotspot usage into a
+  single total via iCloud.
+- **More polished report visuals** — richer charts and layout in the detailed report.
+
+### Optional / later
+
+- **Apple Developer signing + notarization ($99/yr)** — removes the "right-click → Open" step so
+  the app opens like any App Store download (no rewrite needed; distribution stays outside the App Store).
 
 ---
 
 # Yol Haritası (Türkçe)
+
+Bu yaşayan bir belgedir — özellikler tamamlandıkça **Yapılanlar**'a taşınır, yeni fikirler eklenir.
 
 ## ✅ Yapılanlar
 
@@ -57,19 +76,34 @@
 - Tek kopya koruması, açılışta başlat seçeneği, kurulum sihirbazı
 - CI + pre-commit denetimleriyle GitHub'da yayında
 
-## 🔜 Planlananlar
+## 🔜 Yakında gelecek özellikler
 
-**Sıradaki**
-- Bildirim Merkezi widget'ı (menüyü açmadan kullanıma göz atma)
-- Dönem sonu tahmini ("bu hızla ~X GB'a ulaşırsın") + güzel grafik
+Öncelik sırasına göre planlanıyor. Yapım sırasında ayrıntılar değişebilir.
 
-**Fikir havuzu**
-- Uygulama bazlı limit ("Chrome bugün 1 GB'ı geçince uyar")
-- Gün sonu özet grafiği
-- Kota kritikken düşük veri modu önerisi
-- TripMode tarzı hotspot'ta uygulama engelleme
-- iCloud ile birden fazla Mac'i birleştirme
-- Daha da gösterişli rapor görselleri
+### Sıradaki
 
-**İsteğe bağlı / ileride**
-- Apple Developer imzası + notarizasyon (99 $/yıl) → "sağ tık → Aç" adımını kaldırır
+- **Bildirim Merkezi widget'ı** — macOS Bildirim Merkezi'ne (saate tıklayınca açılan panel)
+  küçük bir kart. Menü çubuğuna bile tıklamadan bugünkü kullanımınızı ve kalan kotanızı görürsünüz
+  — iPhone'daki ana ekran widget'larının Mac karşılığı.
+- **Dönem sonu tahmini** — ortalama hızınıza ve kalan güne göre projeksiyon:
+  "Bu hızla dönem sonunda ~X GB'a ulaşırsın." Küçük bir trend grafiğiyle, paketi aşma yolunda
+  olup olmadığınızı erkenden görürsünüz.
+
+### Fikir havuzu
+
+- **Uygulama bazlı limit** — belirli bir uygulama için eşik: örn. "Chrome bugün 1 GB hotspot
+  verisini geçince uyar." Böylece tek bir uygulama kotayı sessizce eritemez.
+- **Gün sonu özeti** — günün hangi saatlerinde en çok harcadığınızı gösteren kısa özet grafiği.
+- **Düşük veri modu önerisi** — kota kritikleşince macOS Düşük Veri Modu'nu açmayı önerir
+  (arka plan indirmelerini, otomatik güncellemeleri ve yüksek çözünürlüklü içeriği kısar —
+  hızı değil, gereksiz tüketimi azaltır).
+- **TripMode tarzı uygulama engelleme** — hotspot'tayken seçtiğiniz uygulamaların internetini
+  yalnızca ölçmekle kalmayıp fiilen keser (güncellemeler, bulut senkronu vb.).
+- **iCloud ile çoklu-Mac** — birden fazla Mac kullanıyorsanız, hepsinin hotspot kullanımını
+  iCloud üzerinden tek toplamda birleştirir.
+- **Daha gösterişli rapor görselleri** — detaylı raporda daha zengin grafikler ve düzen.
+
+### İsteğe bağlı / ileride
+
+- **Apple Developer imzası + notarizasyon (99 $/yıl)** — "sağ tık → Aç" adımını kaldırır; uygulama
+  tıpkı App Store'dan indirilmiş gibi açılır (yeniden yazım gerekmez, dağıtım App Store dışında kalır).

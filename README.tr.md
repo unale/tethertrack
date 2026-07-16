@@ -68,7 +68,13 @@ VeriTakip hiçbir veriyi internete göndermez. Ölçümler yalnızca `~/VeriTaki
 
 ## Yol Haritası
 
-Yapılanlar ve planlananlar için: [ROADMAP.md](ROADMAP.md)
+**Yakında gelecek özellikler** — şu an planlanıyor:
+- 🔔 **Bildirim Merkezi widget'ı** — menüyü açmadan kullanıma göz atma
+- 📈 **Dönem sonu tahmini** — "bu hızla ~X GB'a ulaşırsın" + trend grafiği
+- 🎯 **Uygulama bazlı limit** — örn. "Chrome bugün 1 GB'ı geçince uyar"
+- 🔵 **Düşük veri modu önerisi** — kota kritikleşince
+
+Tam liste (yapılanlar + planlananlar, güncellendikçe): [ROADMAP.md](ROADMAP.md)
 
 ## Lisans
 
