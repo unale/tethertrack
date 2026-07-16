@@ -24,7 +24,7 @@ Ev/iş Wi-Fi'ı ve Ethernet trafiğini otomatik ayırt eder; yalnızca hotspot k
 
 En kolay yol — hazır paketi indirin:
 
-1. [**VeriTakip-Kurulum.zip**](VeriTakip-Kurulum.zip) dosyasını indirin ve açın
+1. [**kurulum paketini**](https://github.com/unale/tethertrack/releases/latest) dosyasını indirin ve açın
 2. `KURULUM.html`'e çift tıklayın (resimli rehber)
 3. **"VeriTakip Kur"** uygulamasına **sağ tık → Aç** deyin *(çift tık değil; imzasız uygulamalarda macOS ilk açılışta bunu ister)*
 4. Kota, fatura kesim günü ve telefon türünü girin — bitti.

@@ -25,7 +25,7 @@ It automatically distinguishes home/office Wi-Fi and Ethernet from the phone hot
 
 Easiest path — download the prebuilt package:
 
-1. Download and unzip [**VeriTakip-Kurulum.zip**](VeriTakip-Kurulum.zip)
+1. Download and unzip [**the installer**](https://github.com/unale/tethertrack/releases/latest)
 2. Double-click `src/KURULUM.html` (illustrated guide, Turkish)
 3. **Right-click → Open** on the **"VeriTakip Kur"** app *(not double-click; macOS asks for this on the first launch of unsigned apps)*
 4. Enter your quota, billing day and phone type — done.
