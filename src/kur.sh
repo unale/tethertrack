@@ -24,7 +24,7 @@ GUN=${GUN:-1}
 read -p "Telefonunuz iPhone mu Android mi? (i/a) [i]: " TEL
 TEL=${TEL:-i}
 if [ "$TEL" = "a" ] || [ "$TEL" = "A" ]; then
-    ONEKLER='["172.20.10.", "192.168.43.", "192.168.44."]'
+    ONEKLER='["172.20.10.", "192.168.42.", "192.168.43.", "192.168.44."]'
 else
     ONEKLER='["172.20.10."]'
 fi

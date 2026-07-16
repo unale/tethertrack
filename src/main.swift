@@ -66,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         menu.addItem(withTitle: L("Yardım / Geri Bildirim ✉️", "Help / Feedback ✉️"),
                      action: #selector(yardimAc), keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
+        menu.addItem(withTitle: L("Bu Ağı Hotspot Olarak İşaretle", "Mark This Network as Hotspot"),
+                     action: #selector(hotspotIsaretle), keyEquivalent: "")
         menu.addItem(withTitle: L("Hotspot Penceresi Aç (telefondan) 📱", "Open Hotspot Window (via phone) 📱"),
                      action: #selector(hotspotPenceresi), keyEquivalent: "h")
         menu.addItem(NSMenuItem.separator())
@@ -246,6 +248,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             if FileManager.default.fileExists(atPath: y) { return y }
         }
         return "/usr/bin/python3"
+    }
+
+    // --- Bu ağı hotspot olarak işaretle (Android vb. — marka bağımsız) ---
+    // Kullanıcı telefonuna bağlıyken bu ağın geçidi (gateway) önekini
+    // config'teki hotspot_onekler listesine ekler; böylece o telefon tanınır.
+    @objc func hotspotIsaretle() {
+        NSApp.activate(ignoringOtherApps: true)
+        // Mevcut varsayılan geçidi bul
+        let out = kabuk("/sbin/route", ["-n", "get", "default"])
+        var gw = ""
+        for satir in out.split(separator: "\n") {
+            let s = satir.trimmingCharacters(in: .whitespaces)
+            if s.hasPrefix("gateway:") {
+                gw = String(s.dropFirst("gateway:".count)).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        let parcalar = gw.split(separator: ".")
+        guard parcalar.count == 4 else {
+            let a = NSAlert()
+            a.messageText = L("Ağ bulunamadı", "No network found")
+            a.informativeText = L("Şu an bir ağa bağlı görünmüyorsunuz. Önce telefonunuzun " +
+                "kişisel erişim noktasına bağlanın.",
+                "You don't seem to be connected to a network. Connect to your phone's " +
+                "personal hotspot first.")
+            a.runModal(); return
+        }
+        let onek = parcalar[0...2].joined(separator: ".") + "."
+
+        let a = NSAlert()
+        a.messageText = L("Bu ağı hotspot olarak işaretle?", "Mark this network as hotspot?")
+        a.informativeText = L(
+            "Şu an bağlı olduğunuz ağ (\(onek)x) telefon paylaşımı olarak kaydedilecek ve " +
+            "bundan sonra kotadan sayılacak.\n\nYALNIZCA telefonunuzun hotspot'una " +
+            "bağlıyken yapın — ev/iş Wi-Fi'ınıza bağlıyken yaparsanız o ağ yanlışlıkla " +
+            "kotadan sayılır.",
+            "The network you're currently on (\(onek)x) will be saved as tethering and " +
+            "counted against your quota from now on.\n\nDo this ONLY while connected to " +
+            "your phone's hotspot — doing it on home/office Wi-Fi would wrongly count that " +
+            "network against your quota.")
+        a.addButton(withTitle: L("Hotspot Olarak İşaretle", "Mark as Hotspot"))
+        a.addButton(withTitle: L("Vazgeç", "Cancel"))
+        guard a.runModal() == .alertFirstButtonReturn else { return }
+
+        // config.json'daki hotspot_onekler'e ekle
+        let cfgURL = veriDir.appendingPathComponent("config.json")
+        var cfg = ((try? Data(contentsOf: cfgURL))
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        var onekler = (cfg["hotspot_onekler"] as? [String]) ?? ["172.20.10."]
+        if !onekler.contains(onek) { onekler.append(onek) }
+        cfg["hotspot_onekler"] = onekler
+        if let d = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted, .sortedKeys]) {
+            try? d.write(to: cfgURL)
+        }
+        let t = NSAlert()
+        t.messageText = L("İşaretlendi ✅", "Marked ✅")
+        t.informativeText = L("\(onek)x artık hotspot olarak tanınıyor.",
+                              "\(onek)x is now recognized as hotspot.")
+        t.runModal()
     }
 
     func hotspotVarMi() -> Bool {
