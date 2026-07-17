@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     var durumSatiri: NSMenuItem?
     var acilisSatiri: NSMenuItem?
     var dil = "tr"   // config.json'dan başlangıçta okunur
+    var sizintiUyarildi = false   // aynı sızıntı için tekrar tekrar uyarmamak için
 
     // Ayarlar penceresi bileşenleri
     var ayarWin: NSWindow?
@@ -137,6 +138,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
         sonAg = ag
         ilkOkuma = false
+
+        // Sızıntı aksiyon uyarısı: yeni sızıntı tespitinde bir kez göster
+        let sizintiVar = (state["anomali"] as? Bool) == true
+            && !((state["sizinti"] as? [String: Any])?.isEmpty ?? true)
+        if sizintiVar && !sizintiUyarildi {
+            sizintiUyarildi = true
+            sizintiAksiyon(state)
+        } else if !sizintiVar {
+            sizintiUyarildi = false
+        }
+    }
+
+    func wifiAygiti() -> String {
+        let out = kabuk("/usr/sbin/networksetup", ["-listallhardwareports"])
+        let satirlar = out.components(separatedBy: "\n")
+        for (i, s) in satirlar.enumerated() where s.contains("Wi-Fi") && i + 1 < satirlar.count {
+            let dev = satirlar[i + 1]
+            if dev.hasPrefix("Device:") {
+                return dev.replacingOccurrences(of: "Device:", with: "").trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return "en0"
+    }
+
+    // Sızıntı tespit edilince kullanıcıya somut aksiyon sun
+    func sizintiAksiyon(_ state: [String: Any]) {
+        NSApp.activate(ignoringOtherApps: true)
+        let apps = ((state["sizinti"] as? [String: Any])?.keys.sorted().joined(separator: ", ")) ?? ""
+        let a = NSAlert()
+        a.messageText = L("⚠️ Telefondan veri sızıyor", "⚠️ Phone data leak")
+        a.informativeText = L(
+            "Hotspot penceresi DIŞINDA telefon hattından veri gidiyor: \(apps). Kotanız eriyor.\n\n" +
+            "Telefon bağlantısını (Wi-Fi hotspot) keserek sızıntıyı hemen durdurabilirsiniz — " +
+            "Ethernet'ten çalışmaya devam edersiniz.",
+            "Data is leaving via the PHONE outside the Hotspot Window: \(apps). Your quota is draining.\n\n" +
+            "You can stop the leak now by cutting the phone connection (Wi-Fi hotspot) — " +
+            "you'll keep working over Ethernet.")
+        a.addButton(withTitle: L("Wi-Fi'yi Kapat (bağlantıyı kes)", "Turn Off Wi-Fi (cut connection)"))
+        a.addButton(withTitle: L("Sorun Raporu Gönder", "Send Problem Report"))
+        a.addButton(withTitle: L("Şimdilik Kapat", "Dismiss"))
+        let s = a.runModal()
+        if s == .alertFirstButtonReturn {
+            kabuk("/usr/sbin/networksetup", ["-setairportpower", wifiAygiti(), "off"])
+            let t = NSAlert()
+            t.messageText = L("Wi-Fi kapatıldı ✅", "Wi-Fi turned off ✅")
+            t.informativeText = L(
+                "Telefon bağlantısı kesildi, sızıntı durdu. Ethernet'ten devam ediyorsunuz. " +
+                "Telefonu tekrar kullanmak için menü çubuğundaki Wi-Fi simgesinden açın.",
+                "The phone connection is cut and the leak stopped. You're on Ethernet now. " +
+                "Turn Wi-Fi back on from the menu-bar Wi-Fi icon to use the phone again.")
+            t.runModal()
+        } else if s == .alertSecondButtonReturn {
+            yardimAc()
+        }
     }
 
     func panelGoster() {
