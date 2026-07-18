@@ -66,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         acilisSatiri?.state = acilistaBaslarMi() ? .on : .off
         menu.addItem(withTitle: L("Yardım / Geri Bildirim ✉️", "Help / Feedback ✉️"),
                      action: #selector(yardimAc), keyEquivalent: "")
+        menu.addItem(withTitle: L("Güncellemeleri Denetle…", "Check for Updates…"),
+                     action: #selector(guncellemeDenetleElle), keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: L("Bu Ağı Hotspot Olarak İşaretle", "Mark This Network as Hotspot"),
                      action: #selector(hotspotIsaretle), keyEquivalent: "")
@@ -95,6 +97,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             self?.tik()
         }
         tik()
+        // Açılışta bir kez sessiz güncelleme denetimi (yeni sürüm varsa bildir)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            self?.guncellemeDenetle(sessiz: true)
+        }
+    }
+
+    @objc func guncellemeDenetleElle() { guncellemeDenetle(sessiz: false) }
+
+    // GitHub'daki son sürümü kontrol eder; yeni sürüm varsa kullanıcıyı uyarır.
+    func guncellemeDenetle(sessiz: Bool) {
+        let mevcut = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0"
+        guard let url = URL(string: "https://api.github.com/repos/unale/tethertrack/releases/latest") else { return }
+        var istek = URLRequest(url: url)
+        istek.timeoutInterval = 10
+        URLSession.shared.dataTask(with: istek) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tag = json["tag_name"] as? String else {
+                if !sessiz {
+                    DispatchQueue.main.async {
+                        let a = NSAlert()
+                        a.messageText = self.L("Denetlenemedi", "Couldn't check")
+                        a.informativeText = self.L("Sürüm bilgisine ulaşılamadı. İnternet bağlantınızı kontrol edin.",
+                                                   "Could not reach version info. Check your internet connection.")
+                        a.runModal()
+                    }
+                }
+                return
+            }
+            let sonSurum = tag.replacingOccurrences(of: "v", with: "")
+            DispatchQueue.main.async {
+                if self.surumDahaYeni(sonSurum, mevcut) {
+                    NSApp.activate(ignoringOtherApps: true)
+                    let a = NSAlert()
+                    a.messageText = self.L("Yeni sürüm var: \(sonSurum) 🎉", "New version available: \(sonSurum) 🎉")
+                    a.informativeText = self.L(
+                        "Şu an \(mevcut) sürümünü kullanıyorsunuz. İndirme sayfasını açalım mı?\n\n" +
+                        "Yeni sürümü kurunca eski sürüm otomatik olarak değiştirilir — elle silmenize gerek yok.",
+                        "You're on version \(mevcut). Open the download page?\n\n" +
+                        "Installing the new version automatically replaces the old one — no manual removal needed.")
+                    a.addButton(withTitle: self.L("İndirme Sayfasını Aç", "Open Download Page"))
+                    a.addButton(withTitle: self.L("Sonra", "Later"))
+                    if a.runModal() == .alertFirstButtonReturn,
+                       let dl = URL(string: "https://github.com/unale/tethertrack/releases/latest") {
+                        NSWorkspace.shared.open(dl)
+                    }
+                } else if !sessiz {
+                    let a = NSAlert()
+                    a.messageText = self.L("Güncelsiniz ✅", "Up to date ✅")
+                    a.informativeText = self.L("En son sürümü kullanıyorsunuz (\(mevcut)).",
+                                               "You're on the latest version (\(mevcut)).")
+                    a.runModal()
+                }
+            }
+        }.resume()
+    }
+
+    // "1.2.0" > "1.2" gibi basit sürüm karşılaştırması
+    func surumDahaYeni(_ yeni: String, _ mevcut: String) -> Bool {
+        let y = yeni.split(separator: ".").compactMap { Int($0) }
+        let m = mevcut.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(y.count, m.count) {
+            let yv = i < y.count ? y[i] : 0
+            let mv = i < m.count ? m[i] : 0
+            if yv != mv { return yv > mv }
+        }
+        return false
     }
 
     func jsonOku(_ dosya: String) -> [String: Any]? {

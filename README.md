@@ -32,7 +32,15 @@ Easiest path — download the prebuilt package:
 
 > **Note:** For apps downloaded from the internet, macOS is extra strict. If a warning appears: **System Settings → Privacy & Security → "Open Anyway".**
 
-**To uninstall:** open "VeriTakip Kur" and click **Kaldır** (Remove), or run `bash src/kaldir.sh`.
+## Updating
+
+- The app checks for updates on launch and via menu **📶 → "Check for Updates…"**. When a newer version exists, it offers to open the download page.
+- To update: download the [latest installer](https://github.com/unale/tethertrack/releases/latest), unzip, **right-click → Open** on "VeriTakip Kur". Installing **automatically replaces** the old version — no manual removal needed.
+
+## Uninstalling
+
+- Open **"VeriTakip Kur"** and click **Kaldır** (Remove) — or run `bash src/kaldir.sh`.
+- This stops the background services and removes the app. Your measurement data in `~/VeriTakip` is kept; to delete that too: `rm -rf ~/VeriTakip`.
 
 ## Build from source (for developers)
 

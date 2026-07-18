@@ -31,7 +31,15 @@ En kolay yol — hazır paketi indirin:
 
 > **Not:** İnternetten indirilen imzasız uygulamalarda macOS ekstra dikkatli davranır. Uyarı çıkarsa: **Sistem Ayarları → Gizlilik ve Güvenlik → "Yine de Aç"**.
 
-**Kaldırmak için:** "VeriTakip Kur" uygulamasını açıp **Kaldır** düğmesine basın (veya `bash src/kaldir.sh`).
+## Güncelleme
+
+- Uygulama açılışta ve **📶 → "Güncellemeleri Denetle…"** menüsünden yeni sürümü kontrol eder. Yeni sürüm varsa indirme sayfasını açmayı önerir.
+- Güncellemek için: [en son kurulum paketini](https://github.com/unale/tethertrack/releases/latest) indirin, açın, "VeriTakip Kur"a **sağ tık → Aç** deyin. Kurulum eski sürümü **otomatik değiştirir** — elle silmenize gerek yok.
+
+## Kaldırma
+
+- **"VeriTakip Kur"** uygulamasını açıp **Kaldır** düğmesine basın (veya `bash src/kaldir.sh`).
+- Bu, arka plan servislerini durdurur ve uygulamayı siler. `~/VeriTakip` klasöründeki ölçüm verileriniz korunur; onları da silmek için: `rm -rf ~/VeriTakip`.
 
 ## Kaynaktan derleme (geliştiriciler için)
 
