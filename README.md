@@ -38,7 +38,7 @@ Easiest path — download the prebuilt package:
 
 ```bash
 git clone https://github.com/unale/tethertrack.git
-cd veritakip
+cd tethertrack
 bash build.sh
 ```
 
