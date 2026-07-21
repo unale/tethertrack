@@ -40,6 +40,10 @@ DEFAULT_CONFIG = {
     # Hotspot ağ geçidi önekleri: iPhone hep 172.20.10.x kullanır.
     # Android telefonlar için genellikle "192.168.43." eklenmelidir.
     "hotspot_onekler": ["172.20.10."],
+    # Kullanıcının onayladığı ağların hafızası: ağ geçidi MAC'i -> "hotspot"/"wifi".
+    # Android hotspot'ları üreticiye göre farklı IP kullandığından, ağ kimliği
+    # için sabit IP öneki yerine gateway MAC'i kullanılır (ağa özgü, kalıcı).
+    "bilinen_aglar": {},
     # Bildirim aç/kapat anahtarları
     "bildirim_baglanti": True,  # hotspot'a bağlanınca durum bildirimi
     "bildirim_gunluk": True,    # günlük eşik aşımı bildirimi
@@ -146,6 +150,40 @@ def app_adi(ham):
     return ad
 
 
+def ag_gecidi_mac(gw):
+    """Ağ geçidinin (gateway) MAC adresini arp tablosundan okur.
+
+    Bu, ağın kalıcı kimliğidir: aynı hotspot/router her zaman aynı MAC'e sahiptir,
+    IP aralığı değişse bile. Android hotspot'larını üreticiden bağımsız tanımak
+    için IP önekinden çok daha güvenilirdir.
+    """
+    if not gw or gw.count(".") != 3:
+        return ""
+    out = calistir(["arp", "-n", gw])
+    for satir in out.splitlines():
+        for parca in satir.split():
+            if ":" in parca and len(parca.split(":")) == 6:
+                # 'a2:62:ba:8:fd:fa' gibi kısaltmaları normalize et
+                try:
+                    return ":".join(f"{int(x, 16):02x}" for x in parca.split(":"))
+                except ValueError:
+                    continue
+    return ""
+
+
+def mac_rastgele_mi(mac):
+    """MAC 'locally-administered' (rastgele) mı? = telefon hotspot imzası.
+
+    Telefonlar (iPhone/Android) erişim noktası için rastgele/yerel-yönetimli MAC
+    kullanır; ev/iş router'ları gerçek üretici (globally-unique) MAC'i kullanır.
+    İlk oktetteki 0x02 biti set ise yerel-yönetimlidir → muhtemelen telefon.
+    """
+    try:
+        return bool(int(mac.split(":")[0], 16) & 0x02)
+    except (ValueError, IndexError, AttributeError):
+        return False
+
+
 def ag_turu(gw, config):
     """Telefon paylaşımını ağ geçidi adresinden tanır (iPhone: 172.20.10.x)."""
     onekler = config.get("hotspot_onekler", ["172.20.10."])
@@ -200,6 +238,26 @@ def ip_hotspot_mu(ip, config):
     return any(ip.startswith(o) for o in onekler)
 
 
+def arayuz_turu(arayuz, ip, config, wifi_dev, default_iface="", gw_mac=""):
+    """Bir fiziksel arayüzün türünü belirler: HOTSPOT / WIFI / ETHERNET.
+
+    Sıra:
+    1. IP öneki hotspot listesinde mi? (iPhone 172.20.10.x — her zaman)
+    2. Bu, varsayılan rotanın arayüzü ve ağ geçidi MAC'i kullanıcı tarafından
+       onaylanmış bir ağ mı? (Android hotspot'ları buradan yakalanır)
+    3. Değilse: Wi-Fi aygıtıysa WIFI, değilse ETHERNET.
+    """
+    if ip_hotspot_mu(ip, config):
+        return HOTSPOT
+    if arayuz == default_iface and gw_mac:
+        karar = config.get("bilinen_aglar", {}).get(gw_mac)
+        if karar == HOTSPOT:
+            return HOTSPOT
+        if karar in (WIFI, ETHERNET):
+            return ETHERNET if arayuz != wifi_dev else WIFI
+    return WIFI if arayuz == wifi_dev else ETHERNET
+
+
 # Telefon arayüzünde küçük keepalive/discovery trafiği yapan ama kota eritmeyen
 # sistem servisleri — bunlar için alarm verilmez (yanlış pozitifi önler).
 # Not: gerçekten GB çekebilen cloudd/nsurlsessiond/softwareupdated DAHİL edilmez
@@ -211,16 +269,18 @@ SISTEM_KEEPALIVE = {
 }
 
 
-def telefon_sizinti(config):
+def telefon_sizinti(config, ek_onekler=()):
     """Telefon hattından çıkan, HOTSPOT PROXY DIŞINDAKI süreçleri bulur.
 
     Hotspot Penceresi trafiği yerel proxy'den (hotspot_proxy.py) geçer; bu
     beklenen kullanımdır. Başka herhangi bir kullanıcı sürecinin telefon
     IP'sinden doğrudan bağlantısı = İSTENMEYEN SIZINTI (kota erimesi).
     Küçük keepalive yapan sistem servisleri (SISTEM_KEEPALIVE) hariç tutulur.
+    `ek_onekler`: MAC ile onaylanmış (IP öneki listesinde olmayan) aktif
+    hotspot'ların IP önekleri — Android hotspot'ları da kapsanır.
     Döner: {"surec_adi": bağlantı_sayısı}.
     """
-    onekler = tuple(config.get("hotspot_onekler", ["172.20.10."]))
+    onekler = tuple(config.get("hotspot_onekler", ["172.20.10."])) + tuple(ek_onekler)
     # Proxy süreçlerinin PID'leri (bunlar beklenen, hariç tutulur)
     proxy_pidler = set(calistir(["pgrep", "-f", "hotspot_proxy"]).split())
     out = calistir(["lsof", "-i", "-n", "-P"])
@@ -411,6 +471,8 @@ def ornek_al():
     bugun = date.today().isoformat()
     onceki_ag = state.get("son_ag")
 
+    gw_mac = ag_gecidi_mac(gw) if iface else ""
+
     if not iface:
         state["son_ag"] = "yok"
         state["son_ag_detay"] = "yok"
@@ -429,13 +491,23 @@ def ornek_al():
     # Kullanıcı telefonun bağlı olduğunu Ethernet birincilken de görebilsin diye.
     bagli_turler = set()
     for _ar, _ip in fiz.items():
-        if ip_hotspot_mu(_ip, config):
-            bagli_turler.add(HOTSPOT)
-        elif _ar == wifi_dev:
-            bagli_turler.add(WIFI)
-        else:
-            bagli_turler.add(ETHERNET)
+        bagli_turler.add(arayuz_turu(_ar, _ip, config, wifi_dev, iface, gw_mac))
     state["bagli_turler"] = sorted(bagli_turler)
+
+    # --- YENİ AĞ TESPİTİ: bilinmeyen bir Wi-Fi ağına bağlanıldı mı? ---
+    # Varsayılan rotanın arayüzü Wi-Fi ve ağ geçidi ne iPhone öneki ne de daha
+    # önce onaylanmış bir ağ ise, kullanıcıya "bu hotspot mu?" diye bir kez sorulur.
+    # Rastgele (locally-administered) MAC → telefon hotspot'u tahmini öne çıkarılır.
+    bilinen = config.get("bilinen_aglar", {})
+    yeni_ag = None
+    if (iface == wifi_dev and gw_mac and gw_mac not in bilinen
+            and not any(ip_hotspot_mu(ip, config) for ip in fiz.values())):
+        yeni_ag = {
+            "mac": gw_mac,
+            "gw": gw,
+            "tahmin": HOTSPOT if mac_rastgele_mi(gw_mac) else WIFI,
+        }
+    state["yeni_ag"] = yeni_ag
     tur_delta = {HOTSPOT: 0, WIFI: 0, ETHERNET: 0}
     for arayuz, ip in fiz.items():
         sayac = bayt_sayaclari(arayuz)
@@ -450,12 +522,7 @@ def ornek_al():
             if d_in < 0 or d_out < 0:
                 d_in, d_out = i_bytes, o_bytes
             if d_in or d_out:
-                if ip_hotspot_mu(ip, config):
-                    tur = HOTSPOT
-                elif arayuz == wifi_dev:
-                    tur = WIFI
-                else:
-                    tur = ETHERNET
+                tur = arayuz_turu(arayuz, ip, config, wifi_dev, iface, gw_mac)
                 t = gun.setdefault(tur, {"in": 0, "out": 0})
                 t["in"] += d_in
                 t["out"] += d_out
@@ -493,14 +560,21 @@ def ornek_al():
     # --- ACİL KORUMA: Hotspot penceresi DIŞINDA telefondan veri sızması ---
     # Uygulamanın temel vaadi: hotspot yalnızca istenen pencere için kullanılır.
     # Başka bir sürecin telefon hattından çıkması = istenmeyen sızıntı (kota erir).
-    hotspot_bagli = any(ip_hotspot_mu(ip, config) for ip in fiz.values())
-    kablo_bagli = any(not ip_hotspot_mu(ip, config) for ip in fiz.values())
+    _turler = {ar: arayuz_turu(ar, ip, config, wifi_dev, iface, gw_mac)
+               for ar, ip in fiz.items()}
+    hotspot_bagli = HOTSPOT in _turler.values()
+    kablo_bagli = any(t != HOTSPOT for t in _turler.values())
+    # MAC ile onaylanmış (IP öneki listesinde olmayan) hotspot IP'lerinin /24
+    # önekleri — sızıntı tespiti Android hotspot'unu da görebilsin diye.
+    ek_hs_onekler = [fiz[ar].rsplit(".", 1)[0] + "."
+                     for ar, t in _turler.items()
+                     if t == HOTSPOT and not ip_hotspot_mu(fiz[ar], config)]
     default_telefon = state.get("son_ag_detay") == HOTSPOT
     dl = config.get("dil", "tr")
     uyarilar = state.setdefault("uyarilar", {})
 
     # Telefon bağlıysa: hotspot proxy dışındaki süreçleri tespit et (asıl sızıntı)
-    sizinti = telefon_sizinti(config) if hotspot_bagli else {}
+    sizinti = telefon_sizinti(config, ek_hs_onekler) if hotspot_bagli else {}
     # Sızıntı VEYA tüm trafiğin telefona kayması → anomali
     anomali_var = bool(sizinti) or (hotspot_bagli and kablo_bagli and default_telefon)
 

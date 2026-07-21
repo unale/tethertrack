@@ -59,7 +59,8 @@ bash build.sh
 
 ## Nasıl çalışır?
 
-- iPhone kişisel erişim noktası her zaman `172.20.10.x` ağını kullanır; ağ türü buradan tanınır (SSID/konum izni gerekmez). Android için `192.168.43.x` de desteklenir.
+- iPhone kişisel erişim noktası her zaman `172.20.10.x` ağını kullanır; otomatik tanınır (SSID/konum izni gerekmez).
+- **Android hotspot'ları operatöre göre değişen IP aralıkları kullanır** (`192.168.43.x`, `10.x.x.x`, …); sabit bir liste hepsini yakalayamaz. Bunun yerine TetherTrack ağı **ağ geçidi MAC adresinden** tanır: telefon hotspot'ları rastgele (yerel-yönetimli) MAC, ev/iş router'ları gerçek üretici MAC'i kullanır. Bilinmeyen bir Wi-Fi'ya bağlanınca **bir kez** sorar — "bu telefon hotspot'u mu?" — olası cevabı önceden seçili sunar, seçiminizi ağa özel (gateway MAC ile) hatırlar ve bir daha sormaz.
 - Veri sayımı `netstat` arayüz sayaçlarının dakikalık farkından; uygulama dökümü `nettop` süreç sayaçlarından hesaplanır (ağ toplamına oranlanarak gösterilir).
 - Ölçüm `launchd` ile dakikada bir + her ağ değişiminde tetiklenir.
 - Menü çubuğu uygulaması Swift/Cocoa'dır; ölçüm dosyalarını okuyarak çalışır.

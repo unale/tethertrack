@@ -16,3 +16,4 @@ hata.log
 # macOS
 .DS_Store
 VeriTakip-Kurulum.zip
+__pycache__/

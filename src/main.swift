@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     var acilisSatiri: NSMenuItem?
     var dil = "tr"   // config.json'dan başlangıçta okunur
     var sizintiUyarildi = false   // aynı sızıntı için tekrar tekrar uyarmamak için
+    var yeniAgSoruldu = Set<String>()   // bu oturumda sorulan/ertelenen ağ MAC'leri
 
     // Ayarlar penceresi bileşenleri
     var ayarWin: NSWindow?
@@ -213,6 +214,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
         sonAg = ag
         ilkOkuma = false
+
+        // Yeni/bilinmeyen Wi-Fi ağı: bir kez "bu hotspot mu?" diye sor.
+        // Android hotspot'ları IP önekiyle tanınamadığından bu kritik kapıdır.
+        if let yeni = state["yeni_ag"] as? [String: Any],
+           let mac = yeni["mac"] as? String, !yeniAgSoruldu.contains(mac) {
+            yeniAgSoruldu.insert(mac)
+            yeniAgSor(mac: mac,
+                      gw: (yeni["gw"] as? String) ?? "",
+                      tahmin: (yeni["tahmin"] as? String) ?? "wifi")
+        }
 
         // Sızıntı aksiyon uyarısı: yeni sızıntı tespitinde bir kez göster
         let sizintiVar = (state["anomali"] as? Bool) == true
@@ -459,6 +470,81 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         t.messageText = L("İşaretlendi ✅", "Marked ✅")
         t.informativeText = L("\(onek)x artık hotspot olarak tanınıyor.",
                               "\(onek)x is now recognized as hotspot.")
+        t.runModal()
+    }
+
+    // --- Yeni ağ algılandı: bu telefon hotspot'u mu, normal Wi-Fi mı? ---
+    // Ölçüm motoru bilinmeyen bir Wi-Fi ağı görünce sorar (bir kez). Cevap ağ
+    // geçidi MAC'ine göre kalıcı kaydedilir; ağ bir daha otomatik tanınır.
+    // `tahmin`: rastgele (telefon imzalı) MAC ise "hotspot", değilse "wifi".
+    func yeniAgSor(mac: String, gw: String, tahmin: String) {
+        NSApp.activate(ignoringOtherApps: true)
+        let telefonTahmini = (tahmin == "hotspot")
+        let a = NSAlert()
+        a.messageText = L("Yeni ağ algılandı — telefon hotspot'u mu?",
+                          "New network detected — is it a phone hotspot?")
+        var bilgi = L(
+            "Şu an bağlandığınız Wi-Fi ağı VeriTakip'e yeni. Bu bir telefonun kişisel " +
+            "erişim noktası mı, yoksa ev/iş Wi-Fi'ı mı?\n\n" +
+            "• Telefon hotspot'u → kotanızdan sayılır (veri paketiniz erir).\n" +
+            "• Normal Wi-Fi → kotadan sayılmaz.\n\n" +
+            "Cevabınız bu ağa özel olarak hatırlanır; bir daha sorulmaz.",
+            "The Wi-Fi network you just joined is new to VeriTakip. Is it a phone's " +
+            "personal hotspot, or a home/office Wi-Fi?\n\n" +
+            "• Phone hotspot → counts against your quota (your data plan drains).\n" +
+            "• Normal Wi-Fi → not counted.\n\n" +
+            "Your answer is remembered for this network; you won't be asked again.")
+        if telefonTahmini {
+            bilgi += L("\n\n📱 İpucu: Bu ağın imzası bir telefon hotspot'una benziyor.",
+                       "\n\n📱 Hint: This network's signature looks like a phone hotspot.")
+        }
+        a.informativeText = bilgi
+        // Tahmine göre ilk (varsayılan) düğmeyi seç → dalgın kullanıcı doğru olanı onaylar.
+        if telefonTahmini {
+            a.addButton(withTitle: L("📱 Telefon hotspot'u (kotadan say)", "📱 Phone hotspot (count it)"))
+            a.addButton(withTitle: L("🏠 Normal Wi-Fi (sayma)", "🏠 Normal Wi-Fi (don't count)"))
+        } else {
+            a.addButton(withTitle: L("🏠 Normal Wi-Fi (sayma)", "🏠 Normal Wi-Fi (don't count)"))
+            a.addButton(withTitle: L("📱 Telefon hotspot'u (kotadan say)", "📱 Phone hotspot (count it)"))
+        }
+        a.addButton(withTitle: L("Sonra sor", "Ask later"))
+        let s = a.runModal()
+        let karar: String
+        if s == .alertFirstButtonReturn {
+            karar = telefonTahmini ? "hotspot" : "wifi"
+        } else if s == .alertSecondButtonReturn {
+            karar = telefonTahmini ? "wifi" : "hotspot"
+        } else {
+            return   // "Sonra sor" → bu oturumda tekrar sorulmaz, kalıcı kayıt yok
+        }
+        agKararKaydet(mac: mac, karar: karar)
+    }
+
+    // Ağ kararını config.json'daki bilinen_aglar haritasına yazar (MAC → tür)
+    // ve ölçüm motorunu yeniden tetikler; sınıflama anında güncellenir.
+    func agKararKaydet(mac: String, karar: String) {
+        let cfgURL = veriDir.appendingPathComponent("config.json")
+        var cfg = ((try? Data(contentsOf: cfgURL))
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]) ?? [:]
+        var bilinen = (cfg["bilinen_aglar"] as? [String: Any]) ?? [:]
+        bilinen[mac] = karar
+        cfg["bilinen_aglar"] = bilinen
+        if let d = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted, .sortedKeys]) {
+            try? d.write(to: cfgURL)
+        }
+        // Ölçüm motorunu hemen çalıştır (yeni sınıflama state'e yansısın)
+        kabuk("/bin/launchctl",
+              ["kickstart", "-k", "gui/\(getuid())/com.veritakip.olcum"], bekle: false)
+        let t = NSAlert()
+        if karar == "hotspot" {
+            t.messageText = L("Hotspot olarak kaydedildi 📱", "Saved as hotspot 📱")
+            t.informativeText = L(
+                "Bu ağ artık kotadan sayılıyor. Menüde \"📱 Telefon BAĞLI!\" göreceksiniz.",
+                "This network now counts against your quota. You'll see \"📱 Phone CONNECTED!\" in the menu.")
+        } else {
+            t.messageText = L("Normal Wi-Fi olarak kaydedildi 🏠", "Saved as normal Wi-Fi 🏠")
+            t.informativeText = L("Bu ağ kotadan sayılmayacak.", "This network won't count against your quota.")
+        }
         t.runModal()
     }
 

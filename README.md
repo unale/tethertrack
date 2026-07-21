@@ -60,7 +60,8 @@ Produces: `VeriTakip.app` (menu-bar app), `VeriTakip Kur.app` (installer wizard)
 
 ## How it works
 
-- An iPhone personal hotspot always uses the `172.20.10.x` network; the connection type is detected from that (no SSID / location permission needed). Android's `192.168.43.x` is also supported.
+- An iPhone personal hotspot always uses the `172.20.10.x` network, so it's detected automatically (no SSID / location permission needed).
+- **Android hotspots use carrier-dependent IP ranges** (`192.168.43.x`, `10.x.x.x`, …), so a fixed list can't catch them all. Instead, TetherTrack fingerprints the network by its **gateway MAC address**: phone hotspots use a randomized (locally-administered) MAC, home/office routers use a real vendor MAC. When you join an unknown Wi-Fi, it asks **once** — "is this a phone hotspot?" — with the likely answer pre-selected, then remembers your choice per network (by gateway MAC) and never asks again.
 - Data counting comes from per-minute deltas of `netstat` interface counters; the app breakdown from `nettop` process counters (shown scaled to the network total).
 - Measurement is triggered by `launchd` every minute plus on every network change.
 - The menu-bar app is written in Swift/Cocoa and works by reading the measurement files.
