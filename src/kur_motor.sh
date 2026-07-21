@@ -20,9 +20,38 @@ else
 fi
 
 mkdir -p "$HOME/VeriTakip"
-cat > "$HOME/VeriTakip/config.json" <<EOF
-{"aylik_kota_gb": $KOTA, "donem_baslangic_gunu": $GUN, "hotspot_onekler": $ONEKLER}
-EOF
+CFG="$HOME/VeriTakip/config.json"
+# Config birleştirme: güncelleme/yeniden kurulumda kullanıcının öğrenilmiş
+# ayarları (bilinen_aglar = ağ hafızası, bildirim tercihleri, kalan kota…)
+# KORUNUR; yalnız sihirbazda girilen kota/kesim günü güncellenir, telefon
+# önekleri birleştirilir. JSON birleştirme macOS'ta her zaman bulunan
+# JavaScript-for-Automation ile yapılır (Python gerektirmez).
+VT_OLD=""
+[ -f "$CFG" ] && VT_OLD="$(cat "$CFG")"
+export VT_OLD VT_KOTA="$KOTA" VT_GUN="$GUN" VT_ONEKLER="$ONEKLER"
+YENI_CFG="$(osascript -l JavaScript <<'JXA' 2>/dev/null || true
+function run() {
+  ObjC.import('Foundation');
+  var env = $.NSProcessInfo.processInfo.environment.js;
+  var cfg = {};
+  var old = env['VT_OLD'] ? ObjC.unwrap(env['VT_OLD']) : '';
+  if (old) { try { cfg = JSON.parse(old); } catch(e) { cfg = {}; } }
+  cfg.aylik_kota_gb = parseInt(ObjC.unwrap(env['VT_KOTA']), 10);
+  cfg.donem_baslangic_gunu = parseInt(ObjC.unwrap(env['VT_GUN']), 10);
+  var yeni = JSON.parse(ObjC.unwrap(env['VT_ONEKLER']));
+  var cur = cfg.hotspot_onekler || [];
+  yeni.forEach(function(o){ if (cur.indexOf(o) < 0) cur.push(o); });
+  cfg.hotspot_onekler = cur;
+  if (!cfg.bilinen_aglar) cfg.bilinen_aglar = {};
+  return JSON.stringify(cfg, null, 2);
+}
+JXA
+)"
+# JXA başarısız olursa (çok eski/kısıtlı sistem) temiz config'e düş
+if [ -z "$YENI_CFG" ]; then
+    YENI_CFG="{\"aylik_kota_gb\": $KOTA, \"donem_baslangic_gunu\": $GUN, \"hotspot_onekler\": $ONEKLER, \"bilinen_aglar\": {}}"
+fi
+printf '%s\n' "$YENI_CFG" > "$CFG"
 
 mkdir -p "$HOME/Applications"
 rm -rf "$HOME/Applications/VeriTakip.app"
