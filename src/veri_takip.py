@@ -200,13 +200,25 @@ def ip_hotspot_mu(ip, config):
     return any(ip.startswith(o) for o in onekler)
 
 
+# Telefon arayüzünde küçük keepalive/discovery trafiği yapan ama kota eritmeyen
+# sistem servisleri — bunlar için alarm verilmez (yanlış pozitifi önler).
+# Not: gerçekten GB çekebilen cloudd/nsurlsessiond/softwareupdated DAHİL edilmez
+# (onlar sızarsa uyarılmalıdır).
+SISTEM_KEEPALIVE = {
+    "rapportd", "mDNSResponder", "mDNSResponderHelper", "netbiosd", "apsd",
+    "identityservicesd", "sharingd", "configd", "symptomsd", "networkserviceproxy",
+    "trustd", "timed", "ntpd", "locationd", "bluetoothd",
+}
+
+
 def telefon_sizinti(config):
     """Telefon hattından çıkan, HOTSPOT PROXY DIŞINDAKI süreçleri bulur.
 
     Hotspot Penceresi trafiği yerel proxy'den (hotspot_proxy.py) geçer; bu
-    beklenen kullanımdır. Başka herhangi bir sürecin telefon IP'sinden
-    doğrudan bağlantısı = İSTENMEYEN SIZINTI (kota erimesi). Döner:
-    {"surec_adi": bağlantı_sayısı}.
+    beklenen kullanımdır. Başka herhangi bir kullanıcı sürecinin telefon
+    IP'sinden doğrudan bağlantısı = İSTENMEYEN SIZINTI (kota erimesi).
+    Küçük keepalive yapan sistem servisleri (SISTEM_KEEPALIVE) hariç tutulur.
+    Döner: {"surec_adi": bağlantı_sayısı}.
     """
     onekler = tuple(config.get("hotspot_onekler", ["172.20.10."]))
     # Proxy süreçlerinin PID'leri (bunlar beklenen, hariç tutulur)
@@ -220,6 +232,8 @@ def telefon_sizinti(config):
         if len(p) < 9:
             continue
         komut, pid, adres = p[0], p[1], p[8]
+        if komut in SISTEM_KEEPALIVE:
+            continue
         yerel = adres.split("->")[0]  # "172.20.10.8:52345"
         yerel_ip = yerel.rsplit(":", 1)[0]
         if yerel_ip.startswith(onekler) and pid not in proxy_pidler:
