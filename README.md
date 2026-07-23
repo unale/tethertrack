@@ -18,7 +18,8 @@ It automatically distinguishes home/office Wi-Fi and Ethernet from the phone hot
 - 🎯 **Real remaining quota:** enter the value from your carrier's app and TetherTrack decrements it as your computer spends
 - 🔒 **VPN-resilient counting:** even with a bonding VPN (e.g. Speedify) active, it counts phone traffic correctly from the physical interface
 - ⚠️ **Emergency protection:** if traffic silently shifts to the phone while Ethernet is still plugged in, it warns you instantly with a red alarm
-- 📱 **Hotspot Window:** open a single browser window routed only through the phone line, without unplugging Ethernet
+- 📱 **Hotspot Window:** open a single browser window routed only through the phone line, without unplugging Ethernet — and a one-click **Close (stop phone data)** that fully shuts down the proxy and that browser instance, so nothing keeps draining in the background
+- 📶 **Quick phone toggle:** turn the phone (Wi-Fi) on/off from the menu without opening System Settings
 - ⚙️ **Settings window:** quota, billing day, alerts — no file editing needed
 
 ## Installation (for users)

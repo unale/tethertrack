@@ -16,6 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     var dil = "tr"   // config.json'dan başlangıçta okunur
     var sizintiUyarildi = false   // aynı sızıntı için tekrar tekrar uyarmamak için
     var yeniAgSoruldu = Set<String>()   // bu oturumda sorulan/ertelenen ağ MAC'leri
+    var hotspotKapatSatiri: NSMenuItem?   // "Hotspot Penceresini Kapat" — yalnız aktifken görünür
+    var wifiToggleSatiri: NSMenuItem?     // "Telefonu Aç/Kapat (Wi-Fi)" — duruma göre başlık
+    var hotspotPenceresiAktif = false     // Hotspot Penceresi + proxy şu an çalışıyor mu
 
     // Ayarlar penceresi bileşenleri
     var ayarWin: NSWindow?
@@ -74,6 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                      action: #selector(hotspotIsaretle), keyEquivalent: "")
         menu.addItem(withTitle: L("Hotspot Penceresi Aç (telefondan) 📱", "Open Hotspot Window (via phone) 📱"),
                      action: #selector(hotspotPenceresi), keyEquivalent: "h")
+        hotspotKapatSatiri = menu.addItem(
+            withTitle: L("Hotspot Penceresini Kapat (telefon verisini durdur) ⏹", "Close Hotspot Window (stop phone data) ⏹"),
+            action: #selector(hotspotPenceresiKapat), keyEquivalent: "")
+        hotspotKapatSatiri?.isHidden = true   // yalnız pencere açıkken görünür
+        wifiToggleSatiri = menu.addItem(
+            withTitle: L("Telefonu Aç (Wi-Fi)", "Turn On Phone (Wi-Fi)"),
+            action: #selector(wifiToggle), keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: L("VeriTakip'ten Çık", "Quit TetherTrack"),
                      action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -209,6 +219,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             durumMetni += L("   ·   📱 Telefon BAĞLI!", "   ·   📱 Phone CONNECTED!")
         }
         durumSatiri?.title = durumMetni
+        wifiToggleGuncelle()
         if !ilkOkuma && ag == "hotspot" && sonAg != "hotspot" {
             panelGoster()
         }
@@ -616,12 +627,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             "o zaman SADECE bu pencere değil, bilgisayarın TÜM trafiği (güncellemeler, " +
             "uygulamalar) telefondan gider ve kotanız hızla erir.\n\n" +
             "VeriTakip bunu algılarsa sizi kırmızı alarmla uyarır. İşiniz biter bitmez " +
-            "bu pencereyi kapatın; alarm görürseniz Wi-Fi'yi kapatıp Ethernet'e dönün.",
+            "menüden \"Hotspot Penceresini Kapat\"a basın — bu, telefon veri akışını " +
+            "garantili durdurur (pencereyi elle kapatmak proxy'yi arka planda bırakabilir).",
             "On a restricted Ethernet, macOS may make the phone the 'primary connection'; " +
             "then NOT just this window but ALL of your computer's traffic (updates, apps) " +
             "goes through the phone and your quota drains fast.\n\n" +
-            "TetherTrack warns you with a red alarm if it detects this. Close this window " +
-            "as soon as you're done; if you see the alarm, turn off Wi-Fi and return to Ethernet.")
+            "TetherTrack warns you with a red alarm if it detects this. When you're done, " +
+            "click \"Close Hotspot Window\" in the menu — that stops phone data for sure " +
+            "(closing the window by hand can leave the proxy running in the background).")
         risk.addButton(withTitle: L("Anladım, Aç", "Got it, Open"))
         risk.addButton(withTitle: L("Vazgeç", "Cancel"))
         if risk.runModal() != .alertFirstButtonReturn { return }
@@ -641,6 +654,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                "--proxy-server=socks5://127.0.0.1:8899",
                "--no-first-run", "--no-default-browser-check",
                "https://music.youtube.com"], bekle: false)
+        hotspotPenceresiAktif = true
+        hotspotKapatSatiri?.isHidden = false
+    }
+
+    // --- Hotspot Penceresini Kapat: telefon veri akışını GARANTİLİ durdurur ---
+    // Önceki sürümde "kapat" yoktu; pencereyi elle kapatınca proxy arka planda
+    // kalıyor ve o Chrome örneğinin arka plan bağlantıları telefondan sızmaya
+    // devam ediyordu. Bu, hem proxy'yi hem de o özel Chrome örneğini tam durdurur.
+    @objc func hotspotPenceresiKapat() {
+        // 1) SOCKS proxy'yi durdur → hiçbir uygulama artık telefondan çıkamaz
+        kabuk("/usr/bin/pkill", ["-f", "hotspot_proxy"])
+        // 2) Yalnız bu özel Chrome örneğini kapat (kullanıcının ana Chrome'una
+        //    dokunmaz; hedef, profil yolundaki "hotspot-chrome" imzasıdır)
+        kabuk("/usr/bin/pkill", ["-f", "hotspot-chrome"])
+        hotspotPenceresiAktif = false
+        hotspotKapatSatiri?.isHidden = true
+        // 3) Doğrula: telefon hattında hâlâ süreç var mı? (sızıntı backstop'u zaten
+        //    ölçüm motorunda; burada kullanıcıya net onay veriyoruz)
+        NSApp.activate(ignoringOtherApps: true)
+        let t = NSAlert()
+        t.messageText = L("Hotspot penceresi kapatıldı ⏹", "Hotspot window closed ⏹")
+        t.informativeText = L(
+            "Telefon veri akışı durduruldu: proxy kapatıldı ve hotspot Chrome örneği " +
+            "sonlandırıldı. Bilgisayar tekrar Ethernet üzerinden çalışıyor.\n\n" +
+            "Sızıntı koruması arka planda açık kalır; telefondan beklenmedik bir akış " +
+            "olursa yine uyarılırsınız.",
+            "Phone data flow stopped: the proxy was shut down and the hotspot Chrome " +
+            "instance was terminated. Your computer is back on Ethernet.\n\n" +
+            "Leak protection stays armed in the background; you'll still be warned if any " +
+            "unexpected flow via the phone occurs.")
+        t.runModal()
+    }
+
+    // --- Telefonu Aç/Kapat (Wi-Fi gücü) — yönetici gerektirmez ---
+    // Not: Ethernet takılıyken Wi-Fi'yi açmak trafiği telefona GEÇİRMEZ (macOS
+    // Ethernet'i tercih eder); bu, telefonu "hazır" tutmak/kesmek içindir. Kabloyu
+    // çekince telefon otomatik devreye girer. Trafiği kabloyla birlikte telefona
+    // vermek için "Hotspot Penceresi"ni kullanın.
+    @objc func wifiToggle() {
+        let wifi = wifiAygiti()
+        let out = kabuk("/usr/sbin/networksetup", ["-getairportpower", wifi])
+        let acik = out.contains(": On")
+        NSApp.activate(ignoringOtherApps: true)
+        if acik {
+            kabuk("/usr/sbin/networksetup", ["-setairportpower", wifi, "off"])
+        } else {
+            kabuk("/usr/sbin/networksetup", ["-setairportpower", wifi, "on"])
+        }
+        wifiToggleGuncelle()
+    }
+
+    // Wi-Fi güç durumuna göre menü başlığını tazeler.
+    func wifiToggleGuncelle() {
+        let out = kabuk("/usr/sbin/networksetup", ["-getairportpower", wifiAygiti()])
+        let acik = out.contains(": On")
+        wifiToggleSatiri?.title = acik
+            ? L("Telefonu Kapat (Wi-Fi'yi kapat)", "Turn Off Phone (Wi-Fi off)")
+            : L("Telefonu Aç (Wi-Fi'yi aç)", "Turn On Phone (Wi-Fi on)")
     }
 
     @objc func kalanGir() {

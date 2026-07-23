@@ -17,7 +17,8 @@ Ev/iş Wi-Fi'ı ve Ethernet trafiğini otomatik ayırt eder; yalnızca hotspot k
 - 🔔 **Kademeli uyarılar:** her 500 MB'de bir günlük uyarı + %60/%80 kota doluluk bildirimi (ayarlanabilir)
 - 🎯 **Gerçek kalan kota:** operatör uygulamanızdaki değeri girin, VeriTakip bilgisayarın harcamasına göre otomatik günceller
 - 🔒 **VPN'e dayanıklı sayım:** Speedify gibi VPN'ler açıkken bile telefondan gideni fiziksel arayüzden doğru sayar
-- 📱 **Hotspot Penceresi:** Ethernet kablosunu çekmeden, yalnızca ayrı bir tarayıcı penceresini telefon hattından açar (menü çubuğu → "Hotspot Penceresi Aç")
+- 📱 **Hotspot Penceresi:** Ethernet kablosunu çekmeden, yalnızca ayrı bir tarayıcı penceresini telefon hattından açar — ve tek tıkla **Kapat (telefon verisini durdur)** ile proxy'yi ve o tarayıcı örneğini tamamen kapatır; böylece arka planda hiçbir şey kotayı eritmeye devam etmez
+- 📶 **Hızlı telefon anahtarı:** Sistem Ayarları'na girmeden menüden telefonu (Wi-Fi) aç/kapat
 - ⚙️ **Ayarlar penceresi:** kota, fatura kesim günü, uyarılar — dosyayla uğraşmadan
 
 ## Kurulum (kullanıcılar için)
